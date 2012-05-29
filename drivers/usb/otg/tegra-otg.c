@@ -447,11 +447,22 @@ static int tegra_otg_probe(struct platform_device *pdev)
 	tegra->irq = res->start;
 	err = request_threaded_irq(tegra->irq, tegra_otg_irq,
 				   NULL,
-				   IRQF_SHARED | IRQF_TRIGGER_RISING, "tegra-otg", tegra);
+				   //IRQF_SHARED | IRQF_TRIGGER_RISING, "tegra-otg", tegra); //old USB fix. remove if TRIGGER_HIGH works
+				   IRQF_SHARED | IRQF_TRIGGER_HIGH,
+				   "tegra-otg", tegra);
 	if (err) {
 		dev_err(&pdev->dev, "Failed to register IRQ\n");
 		goto err_irq;
 	}
+
+	err = enable_irq_wake(tegra->irq);
+	if (err < 0) {
+		dev_warn(&pdev->dev,
+			"Couldn't enable USB otg mode wakeup, irq=%d, error=%d\n",
+			tegra->irq, err);
+		err = 0;
+	}
+
 	INIT_WORK(&tegra->work, irq_work);
 
 	dev_info(&pdev->dev, "otg transceiver registered\n");
