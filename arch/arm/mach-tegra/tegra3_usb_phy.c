@@ -443,7 +443,10 @@
 #define UHSIC_PWR			(1 << 3)
 
 #define FUSE_USB_CALIB_0		0x1F0
-#define   FUSE_USB_CALIB_XCVR_SETUP(x)	(((x) & 0x7F) << 0)
+#define   XCVR_SETUP(x)	(((x) & 0x7F) << 0)
+#define	  XCVR_SETUP_LSB_MASK	0xF
+#define	  XCVR_SETUP_MSB_MASK	0x70
+#define   XCVR_SETUP_LSB_MAX_VAL	0xF
 
 #define APB_MISC_GP_OBSCTRL_0	0x818
 #define APB_MISC_GP_OBSDATA_0	0x81c
@@ -1078,19 +1081,24 @@ static unsigned int utmi_phy_xcvr_setup_value(struct tegra_usb_phy *phy)
 	DBG("%s(%d) inst:[%d]\n", __func__, __LINE__, phy->inst);
 
 	if (cfg->xcvr_use_fuses) {
-		val = FUSE_USB_CALIB_XCVR_SETUP(
-				tegra_fuse_readl(FUSE_USB_CALIB_0));
-		if (cfg->xcvr_setup_offset <= UTMIP_XCVR_MAX_OFFSET)
-			val = val + cfg->xcvr_setup_offset;
+		val = XCVR_SETUP(tegra_fuse_readl(FUSE_USB_CALIB_0));
+		if (cfg->xcvr_use_lsb) {
+			val = min(((val & XCVR_SETUP_LSB_MASK) + cfg->xcvr_setup_offset),
+					XCVR_SETUP_LSB_MAX_VAL);
+			val |= (cfg->xcvr_setup & XCVR_SETUP_MSB_MASK);
+		} else {
+			if (cfg->xcvr_setup_offset <= UTMIP_XCVR_MAX_OFFSET)
+				val = val + cfg->xcvr_setup_offset;
 
-		if (val > UTMIP_XCVR_SETUP_MAX_VALUE) {
-			val = UTMIP_XCVR_SETUP_MAX_VALUE;
-			pr_info("%s: reset XCVR_SETUP to max value\n",
-				 __func__);
-		} else if (val < UTMIP_XCVR_SETUP_MIN_VALUE) {
-			val = UTMIP_XCVR_SETUP_MIN_VALUE;
-			pr_info("%s: reset XCVR_SETUP to min value\n",
-				 __func__);
+			if (val > UTMIP_XCVR_SETUP_MAX_VALUE) {
+				val = UTMIP_XCVR_SETUP_MAX_VALUE;
+				pr_info("%s: reset XCVR_SETUP to max value\n",
+						__func__);
+			} else if (val < UTMIP_XCVR_SETUP_MIN_VALUE) {
+				val = UTMIP_XCVR_SETUP_MIN_VALUE;
+				pr_info("%s: reset XCVR_SETUP to min value\n",
+						__func__);
+			}
 		}
 	} else {
 		val = cfg->xcvr_setup;
@@ -1580,7 +1588,8 @@ static int utmi_phy_power_on(struct tegra_usb_phy *phy)
 	val |= UTMIP_XCVR_SETUP_MSB(XCVR_SETUP_MSB_CALIB(phy->utmi_xcvr_setup));
 	val |= UTMIP_XCVR_LSFSLEW(config->xcvr_lsfslew);
 	val |= UTMIP_XCVR_LSRSLEW(config->xcvr_lsrslew);
-	val |= UTMIP_XCVR_HSSLEW_MSB(0x8);
+	if (!config->xcvr_use_lsb)
+		val |= UTMIP_XCVR_HSSLEW_MSB(0x8);
 	writel(val, base + UTMIP_XCVR_CFG0);
 
 	val = readl(base + UTMIP_XCVR_CFG1);
