@@ -273,7 +273,8 @@ static int smba_get_battery_property(struct i2c_client *client, int reg_offset,
 				POWER_SUPPLY_STATUS_CHARGING :
 				POWER_SUPPLY_STATUS_DISCHARGING;
 
-			if(battery_percent > 99)
+			//get_battery_capacity never reports battery at 100%, so call it full at 99
+			if(battery_percent >= 99)
 				val->intval = POWER_SUPPLY_STATUS_FULL;
 		}
 	} else {

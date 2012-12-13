@@ -18,13 +18,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <linux/nvmap.h>
 #include <linux/slab.h>
+#include <mach/gpufuse.h>
 
 #include "t20/t20.h"
-#include "host1x/host1x_channel.h"
-#include "host1x/host1x_hardware.h"
-#include "host1x/host1x_syncpt.h"
+#include "host1x/host1x01_hardware.h"
 #include "nvhost_hwctx.h"
 #include "dev.h"
 #include "gr3d.h"
@@ -33,18 +31,14 @@
 #include "scale3d.h"
 #include "bus_client.h"
 #include "nvhost_channel.h"
-
-#include <mach/hardware.h>
-
-#ifndef TEGRA_POWERGATE_3D1
-#define TEGRA_POWERGATE_3D1	-1
-#endif
+#include "nvhost_memmgr.h"
+#include "chip_support.h"
 
 void nvhost_3dctx_restore_begin(struct host1x_hwctx_handler *p, u32 *ptr)
 {
 	/* set class to host */
 	ptr[0] = nvhost_opcode_setclass(NV_HOST1X_CLASS_ID,
-					NV_CLASS_HOST_INCR_SYNCPT_BASE, 1);
+					host1x_uclass_incr_syncpt_base_r(), 1);
 	/* increment sync point base */
 	ptr[1] = nvhost_class_host_incr_syncpt_base(p->waitbase,
 			p->restore_incrs);
@@ -70,27 +64,29 @@ void nvhost_3dctx_restore_end(struct host1x_hwctx_handler *p, u32 *ptr)
 {
 	/* syncpt increment to track restore gather. */
 	ptr[0] = nvhost_opcode_imm_incr_syncpt(
-			NV_SYNCPT_OP_DONE, p->syncpt);
+			host1x_uclass_incr_syncpt_cond_op_done_v(), p->syncpt);
 }
 
 /*** ctx3d ***/
 struct host1x_hwctx *nvhost_3dctx_alloc_common(struct host1x_hwctx_handler *p,
 		struct nvhost_channel *ch, bool map_restore)
 {
-	struct nvmap_client *nvmap = nvhost_get_host(ch->dev)->nvmap;
+	struct mem_mgr *memmgr = nvhost_get_host(ch->dev)->memmgr;
 	struct host1x_hwctx *ctx;
 
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
 		return NULL;
-	ctx->restore = nvmap_alloc(nvmap, p->restore_size * 4, 32,
-		map_restore ? NVMAP_HANDLE_WRITE_COMBINE
-			    : NVMAP_HANDLE_UNCACHEABLE, 0);
-	if (IS_ERR_OR_NULL(ctx->restore))
+	ctx->restore = mem_op().alloc(memmgr, p->restore_size * 4, 32,
+		map_restore ? mem_mgr_flag_write_combine
+			    : mem_mgr_flag_uncacheable);
+	if (IS_ERR_OR_NULL(ctx->restore)) {
+		ctx->restore = NULL;
 		goto fail;
+	}
 
 	if (map_restore) {
-		ctx->restore_virt = nvmap_mmap(ctx->restore);
+		ctx->restore_virt = mem_op().mmap(ctx->restore);
 		if (!ctx->restore_virt)
 			goto fail;
 	} else
@@ -103,7 +99,7 @@ struct host1x_hwctx *nvhost_3dctx_alloc_common(struct host1x_hwctx_handler *p,
 	ctx->save_incrs = p->save_incrs;
 	ctx->save_thresh = p->save_thresh;
 	ctx->save_slots = p->save_slots;
-	ctx->restore_phys = nvmap_pin(nvmap, ctx->restore);
+	ctx->restore_phys = mem_op().pin(memmgr, ctx->restore);
 	if (IS_ERR_VALUE(ctx->restore_phys))
 		goto fail;
 
@@ -113,10 +109,10 @@ struct host1x_hwctx *nvhost_3dctx_alloc_common(struct host1x_hwctx_handler *p,
 
 fail:
 	if (map_restore && ctx->restore_virt) {
-		nvmap_munmap(ctx->restore, ctx->restore_virt);
+		mem_op().munmap(ctx->restore, ctx->restore_virt);
 		ctx->restore_virt = NULL;
 	}
-	nvmap_free(nvmap, ctx->restore);
+	mem_op().put(memmgr, ctx->restore);
 	ctx->restore = NULL;
 	kfree(ctx);
 	return NULL;
@@ -131,16 +127,15 @@ void nvhost_3dctx_free(struct kref *ref)
 {
 	struct nvhost_hwctx *nctx = container_of(ref, struct nvhost_hwctx, ref);
 	struct host1x_hwctx *ctx = to_host1x_hwctx(nctx);
-	struct nvmap_client *nvmap =
-		nvhost_get_host(nctx->channel->dev)->nvmap;
+	struct mem_mgr *memmgr = nvhost_get_host(nctx->channel->dev)->memmgr;
 
 	if (ctx->restore_virt) {
-		nvmap_munmap(ctx->restore, ctx->restore_virt);
+		mem_op().munmap(ctx->restore, ctx->restore_virt);
 		ctx->restore_virt = NULL;
 	}
-	nvmap_unpin(nvmap, ctx->restore);
+	mem_op().unpin(memmgr, ctx->restore);
 	ctx->restore_phys = 0;
-	nvmap_free(nvmap, ctx->restore);
+	mem_op().put(memmgr, ctx->restore);
 	ctx->restore = NULL;
 	kfree(ctx);
 }
@@ -152,11 +147,11 @@ void nvhost_3dctx_put(struct nvhost_hwctx *ctx)
 
 int nvhost_gr3d_prepare_power_off(struct nvhost_device *dev)
 {
-	return host1x_save_context(dev, NVSYNCPT_3D);
+	return nvhost_channel_save_context(dev->channel);
 }
 
 enum gr3d_ip_ver {
-	gr3d_01,
+	gr3d_01 = 1,
 	gr3d_02,
 };
 
@@ -196,8 +191,8 @@ static const struct gr3d_desc gr3d[] = {
 };
 
 static struct nvhost_device_id gr3d_id[] = {
-	{ "gr3d01", gr3d_01 },
-	{ "gr3d02", gr3d_02 },
+	{ "gr3d", gr3d_01 },
+	{ "gr3d", gr3d_02 },
 	{ },
 };
 
@@ -209,7 +204,7 @@ static int __devinit gr3d_probe(struct nvhost_device *dev,
 	int index = 0;
 	struct nvhost_driver *drv = to_nvhost_driver(dev->dev.driver);
 
-	index = id_table->driver_data;
+	index = id_table->version;
 
 	drv->finalize_poweron		= gr3d[index].finalize_poweron;
 	drv->busy			= gr3d[index].busy;
@@ -220,10 +215,6 @@ static int __devinit gr3d_probe(struct nvhost_device *dev,
 	drv->prepare_poweroff		= gr3d[index].prepare_poweroff;
 	drv->alloc_hwctx_handler	= gr3d[index].alloc_hwctx_handler;
 
-	/* reset device name so that consistent device name can be
-	 * found in clock tree */
-	dev->name = "gr3d";
-
 	return nvhost_client_device_init(dev);
 }
 
@@ -233,6 +224,7 @@ static int __exit gr3d_remove(struct nvhost_device *dev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
 static int gr3d_suspend(struct nvhost_device *dev, pm_message_t state)
 {
 	return nvhost_client_device_suspend(dev);
@@ -243,8 +235,7 @@ static int gr3d_resume(struct nvhost_device *dev)
 	dev_info(&dev->dev, "resuming\n");
 	return 0;
 }
-
-struct nvhost_device *gr3d_device;
+#endif
 
 static struct nvhost_driver gr3d_driver = {
 	.probe = gr3d_probe,
@@ -262,18 +253,6 @@ static struct nvhost_driver gr3d_driver = {
 
 static int __init gr3d_init(void)
 {
-	int err;
-
-	gr3d_device = nvhost_get_device("gr3d");
-	if (!gr3d_device)
-		return -ENXIO;
-
-	err = nvhost_device_register(gr3d_device);
-	if (err) {
-		pr_err("Could not register 3D device\n");
-		return err;
-	}
-
 	return nvhost_driver_register(&gr3d_driver);
 }
 

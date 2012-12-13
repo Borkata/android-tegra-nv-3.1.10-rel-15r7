@@ -79,7 +79,8 @@ static struct nvhost_device_id *nvhost_bus_match_id(struct nvhost_device *dev,
 	struct nvhost_device_id *id_table)
 {
 	while (id_table->name[0]) {
-		if (strcmp(dev->name, id_table->name) == 0)
+		if (strcmp(dev->name, id_table->name) == 0
+				&& dev->version == id_table->version)
 			return id_table;
 		id_table++;
 	}
@@ -95,7 +96,7 @@ static int nvhost_bus_match(struct device *_dev, struct device_driver *drv)
 	if (ndrv->id_table)
 		return nvhost_bus_match_id(dev, ndrv->id_table) != NULL;
 	else /* driver does not support id_table */
-		return !strncmp(dev->name, drv->name, strlen(drv->name));
+		return !strcmp(dev->name, drv->name);
 }
 
 static int nvhost_drv_probe(struct device *_dev)
@@ -148,6 +149,23 @@ void nvhost_driver_unregister(struct nvhost_driver *drv)
 	driver_unregister(&drv->driver);
 }
 EXPORT_SYMBOL_GPL(nvhost_driver_unregister);
+
+int nvhost_add_devices(struct nvhost_device **devs, int num)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < num; i++) {
+		ret = nvhost_device_register(devs[i]);
+		if (ret) {
+			while (--i >= 0)
+				nvhost_device_unregister(devs[i]);
+			break;
+		}
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(nvhost_add_devices);
 
 int nvhost_device_register(struct nvhost_device *dev)
 {

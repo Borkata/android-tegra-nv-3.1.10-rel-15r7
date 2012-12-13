@@ -51,10 +51,26 @@ int nvhost_channel_init(struct nvhost_channel *ch,
 
 int nvhost_channel_submit(struct nvhost_job *job)
 {
-	/* Low priority submits wait until sync queue is empty. Ignores result
-	 * from nvhost_cdma_flush, as we submit either when push buffer is
-	 * empty or when we reach the timeout. */
-	if (job->priority < NVHOST_PRIORITY_MEDIUM)
+	/*
+	 * Check if queue has higher priority jobs running. If so, wait until
+	 * queue is empty. Ignores result from nvhost_cdma_flush, as we submit
+	 * either when push buffer is empty or when we reach the timeout.
+	 */
+	int higher_count = 0;
+
+	switch (job->priority) {
+	case NVHOST_PRIORITY_HIGH:
+		higher_count = 0;
+		break;
+	case NVHOST_PRIORITY_MEDIUM:
+		higher_count = job->ch->cdma.high_prio_count;
+		break;
+	case NVHOST_PRIORITY_LOW:
+		higher_count = job->ch->cdma.high_prio_count
+			+ job->ch->cdma.med_prio_count;
+		break;
+	}
+	if (higher_count > 0)
 		(void)nvhost_cdma_flush(&job->ch->cdma,
 				NVHOST_CHANNEL_LOW_PRIO_MAX_WAIT);
 
@@ -152,4 +168,21 @@ void nvhost_free_channel_internal(struct nvhost_channel *ch,
 {
 	kfree(ch);
 	(*current_channel_count)--;
+}
+
+int nvhost_channel_save_context(struct nvhost_channel *ch)
+{
+	struct nvhost_hwctx *cur_ctx = ch->cur_ctx;
+	int err = 0;
+	if (cur_ctx)
+		err = channel_op().save_context(ch);
+
+	return err;
+
+}
+
+int nvhost_channel_drain_read_fifo(struct nvhost_channel *ch,
+			u32 *ptr, unsigned int count, unsigned int *pending)
+{
+	return channel_op().drain_read_fifo(ch, ptr, count, pending);
 }

@@ -140,8 +140,15 @@ struct tegra_iovmm_area_ops {
  * called by clients to allocate an I/O VMM client mapping context which
  * will be shared by all clients in the same share_group
  */
-struct tegra_iovmm_client *tegra_iovmm_alloc_client(const char *name,
+struct tegra_iovmm_client *__tegra_iovmm_alloc_client(const char *name,
 	const char *share_group, struct miscdevice *misc_dev);
+
+static inline struct tegra_iovmm_client *tegra_iovmm_alloc_client(
+	struct device *dev, const char *share_group,
+	struct miscdevice *misc_dev)
+{
+	return __tegra_iovmm_alloc_client(dev_name(dev), share_group, misc_dev);
+}
 
 size_t tegra_iovmm_get_vm_size(struct tegra_iovmm_client *client);
 
@@ -220,7 +227,8 @@ int tegra_iovmm_unregister(struct tegra_iovmm_device *dev);
 #else /* CONFIG_TEGRA_IOVMM */
 
 static inline struct tegra_iovmm_client *tegra_iovmm_alloc_client(
-	const char *name, const char *share_group, struct miscdevice *misc_dev)
+	struct device *dev, const char *share_group,
+	struct miscdevice *misc_dev)
 {
 	return NULL;
 }

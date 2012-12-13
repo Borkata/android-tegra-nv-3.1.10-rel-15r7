@@ -25,16 +25,15 @@
 
 struct nvhost_channel;
 struct nvhost_hwctx;
-struct nvmap_client;
 struct nvhost_waitchk;
-struct nvmap_handle;
+struct nvhost_syncpt;
 
 struct nvhost_job_gather {
 	u32 words;
 	phys_addr_t mem;
 	u32 mem_id;
 	int offset;
-	struct nvmap_handle_ref *ref;
+	struct mem_handle *ref;
 };
 
 /*
@@ -55,7 +54,7 @@ struct nvhost_job {
 	int clientid;
 
 	/* Nvmap to be used for pinning & unpinning memory */
-	struct nvmap_client *nvmap;
+	struct mem_mgr *memmgr;
 
 	/* Gathers and their memory */
 	struct nvhost_job_gather *gathers;
@@ -67,9 +66,10 @@ struct nvhost_job {
 	u32 waitchk_mask;
 
 	/* Array of handles to be pinned & unpinned */
-	struct nvmap_pinarray_elem *pinarray;
+	struct nvhost_reloc *relocarray;
+	struct nvhost_reloc_shift *relocshiftarray;
 	int num_relocs;
-	struct nvmap_handle_ref **unpins;
+	struct mem_handle **unpins;
 	int num_unpins;
 
 	/* Sync point id, number of increments and end related to the submit */
@@ -101,7 +101,7 @@ struct nvhost_job {
 struct nvhost_job *nvhost_job_alloc(struct nvhost_channel *ch,
 		struct nvhost_hwctx *hwctx,
 		struct nvhost_submit_hdr_ext *hdr,
-		struct nvmap_client *nvmap,
+		struct mem_mgr *memmgr,
 		int priority, int clientid);
 
 /*
@@ -129,8 +129,11 @@ void nvhost_job_put(struct nvhost_job *job);
  * Pin memory related to job. This handles relocation of addresses to the
  * host1x address space. Handles both the gather memory and any other memory
  * referred to from the gather buffers.
+ *
+ * Handles also patching out host waits that would wait for an expired sync
+ * point value.
  */
-int nvhost_job_pin(struct nvhost_job *job);
+int nvhost_job_pin(struct nvhost_job *job, struct nvhost_syncpt *sp);
 
 /*
  * Unpin memory related to job.

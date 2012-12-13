@@ -790,52 +790,79 @@ unsigned int to_rgb888(unsigned int temp)
 		return (blue << 16) | (green << 8) | (red << 0);
 	}
  
-    void tegra_move_framebuffer(unsigned long to, unsigned long from,
-                                unsigned long to_size, unsigned long from_size)
-    {
-            struct page *page;
-            void __iomem *to_io;
-            u16 *from_virt;
-            unsigned long i, j;
-     
-            BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
-            BUG_ON(PAGE_ALIGN(from) != from);
-            BUG_ON(PAGE_ALIGN(to_size) != to_size);
-            BUG_ON(PAGE_ALIGN(from_size) != from_size);
-     
-            to_io = ioremap(to, to_size);
-            if (!to_io) {
-                    pr_err("%s: Failed to map target framebuffer\n", __func__);
-                    return;
-            }
-     
-            if (pfn_valid(page_to_pfn(phys_to_page(from)))) {
-                    for (i = 0 ; i < from_size; i += PAGE_SIZE) {
-                            page = phys_to_page(from + i);
-                            from_virt = kmap(page);
-     
-                            for (j = 0; j < PAGE_SIZE; j += 2)
-                                    writel(to_rgb888(*(from_virt+j)), to_io + 2*j + i);
-     
-                            kunmap(page);
-                    }
-            } else {
-                    void __iomem *from_io = ioremap(from, from_size);
-                    if (!from_io) {
-                            pr_err("%s: Failed to map source framebuffer\n",
-                                   __func__);
-                            goto out;
-                    }
-     
-                    for (i = 0; i < from_size; i += 2)
-                            writel(to_rgb888(readw(from_io + i)), to_io + 2*i);
-     
-                    iounmap(from_io);
-            }
-    out:
-            iounmap(to_io);
-    }
+ /*
+ * Due to conflicting restrictions on the placement of the framebuffer,
+ * the bootloader is likely to leave the framebuffer pointed at a location
+ * in memory that is outside the grhost aperture.  This function will move
+ * the framebuffer contents from a physical address that is anywher (lowmem,
+ * highmem, or outside the memory map) to a physical address that is outside
+ * the memory map.
+ */
+ void tegra_move_framebuffer(unsigned long to, unsigned long from,
+          unsigned long size)
+ {
+         struct page *page;
+         void __iomem *to_io;
+         void *from_virt;
+         unsigned long i;
+ 
+         BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
+         BUG_ON(PAGE_ALIGN(from) != from);
+         BUG_ON(PAGE_ALIGN(size) != size);
+ 
+         to_io = ioremap(to, size);
+         if (!to_io) {
+                 pr_err("%s: Failed to map target framebuffer\n", __func__);
+                 return;
+         }
+ 
+         if (pfn_valid(page_to_pfn(phys_to_page(from)))) {
+                 for (i = 0 ; i < size; i += PAGE_SIZE) {
+                         page = phys_to_page(from + i);
+                         from_virt = kmap(page);
+                         memcpy(to_io + i, from_virt, PAGE_SIZE);
+                         kunmap(page);
+                 }
+         } else {
+                 void __iomem *from_io = ioremap(from, size);
+                 if (!from_io) {
+                         pr_err("%s: Failed to map source framebuffer\n",
+                                 __func__);
+                         goto out;
+                 }
+ 
+                for (i = 0; i < size; i += 4)
+                         writel(readl(from_io + i), to_io + i);
+                 iounmap(from_io);
+        }
+  out:
+         iounmap(to_io);
+ }
 
+
+void tegra_clear_framebuffer(unsigned long to, unsigned long size)
+{
+	void __iomem *to_io;
+	unsigned long i;
+
+	BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
+	BUG_ON(PAGE_ALIGN(size) != size);
+
+	to_io = ioremap(to, size);
+	if (!to_io) {
+		pr_err("%s: Failed to map target framebuffer\n", __func__);
+		return;
+	}
+
+	if (pfn_valid(page_to_pfn(phys_to_page(to)))) {
+		for (i = 0 ; i < size; i += PAGE_SIZE)
+			memset(to_io + i, 0, PAGE_SIZE);
+	} else {
+		for (i = 0; i < size; i += 4)
+			writel(0, to_io + i);
+	}
+	iounmap(to_io);
+}
 
 void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 	unsigned long fb2_size)

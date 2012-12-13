@@ -1,5 +1,6 @@
 GCOV_PROFILE := y
-obj-y += dc.o
+EXTRA_CFLAGS += -Idrivers/video/tegra/host
+obj-y += dc.o bandwidth.o mode.o clock.o lut.o csc.o window.o
 obj-y += rgb.o
 obj-y += hdmi.o
 obj-$(CONFIG_TEGRA_NVHDCP) += nvhdcp.o

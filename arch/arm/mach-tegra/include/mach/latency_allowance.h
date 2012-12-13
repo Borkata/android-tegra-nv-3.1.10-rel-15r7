@@ -104,7 +104,13 @@ static inline int tegra_enable_latency_scaling(enum tegra_la_id id,
 
 static inline void tegra_disable_latency_scaling(enum tegra_la_id id)
 {
-	return 0;
+	return;
+}
+
+static inline void tegra_latency_allowance_update_tick_length(
+						unsigned int new_ns_per_tick)
+{
+	return;
 }
 #else
 int tegra_set_latency_allowance(enum tegra_la_id id,
@@ -116,6 +122,7 @@ int tegra_enable_latency_scaling(enum tegra_la_id id,
 				    unsigned int threshold_high);
 
 void tegra_disable_latency_scaling(enum tegra_la_id id);
+void tegra_latency_allowance_update_tick_length(unsigned int new_ns_per_tick);
 #endif
 
 #endif /* _MACH_TEGRA_LATENCY_ALLOWANCE_H_ */
