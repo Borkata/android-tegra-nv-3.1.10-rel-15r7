@@ -1599,6 +1599,10 @@ wl_cfgp2p_supported(struct wl_priv *wl, struct net_device *ndev)
 		CFGP2P_INFO(("p2p is unsupported\n"));
 		p2p_supported = 0;
 	}
+	
+	// Hardcode p2p support for now
+	p2p_supported = 1;
+
 	return p2p_supported;
 }
 
