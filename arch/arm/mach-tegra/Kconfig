@@ -104,6 +104,14 @@ config MACH_SMBA1007
        help
          Support for the Malata smba1007 (hannspad)	 
 		 
+		 
+config MACH_SMBA1006
+       bool "Malata smba1006"
+       depends on ARCH_TEGRA_2x_SOC
+       select MACH_HAS_SND_SOC_TEGRA_ALC5623 if SND_SOC
+       help
+         Support for the Malata smba1006 (NotionInk Adam)
+		 
 config MACH_VENTANA
        bool "Ventana board"
        depends on ARCH_TEGRA_2x_SOC

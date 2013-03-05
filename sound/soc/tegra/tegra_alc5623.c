@@ -77,7 +77,7 @@
 #define GPIO_EXT_MIC_EN BIT(3)
 #define GPIO_HP_DET     BIT(4)
 
-#ifdef CONFIG_MACH_ADAM
+#ifdef CONFIG_MACH_SMBA1006
 #define SMBA
 #endif
 

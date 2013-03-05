@@ -995,6 +995,14 @@ config VIDEO_S5K6AA
         ---help---
           This is a V4L2 sensor-level driver for Samsung S5K6AA(FX) 1.3M
           camera sensor with an embedded SoC image signal processor.
+
+config VIDEO_S5K4CDGX
+        tristate "s5k4cdgx support"
+        depends on I2C && VIDEO_V4L2
+        select MEDIA_CONTROLLER
+        select VIDEO_V4L2_SUBDEV_API
+        ----help---
+          This driver supports S5K4CDGX cameras from Samsung
         
 source "drivers/media/video/s5p-tv/Kconfig"
 
