@@ -65,8 +65,8 @@
 #include "tegra_pcm.h"
 #include "tegra_asoc_utils.h"
 
-#ifdef USE_ORG_DAS
-#include <mach/tegra_das.h>
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
+#include "tegra20_das.h"
 #endif
 
 #define DRV_NAME "tegra-snd-alc5623"
@@ -117,12 +117,10 @@ struct tegra_alc5623 {
 	int 				  play_device;		/* Playback devices bitmask */
 	int 				  capture_device;	/* Capture devices bitmask */
 	bool				  is_call_mode;		/* if we are in a call mode */
-#ifndef USE_ORG_DAS	
-	int					  hifi_codec_datafmt;/* HiFi codec data format */
+	int				  hifi_codec_datafmt;/* HiFi codec data format */
 	bool				  hifi_codec_master;/* If Hifi codec is master */
-	int					  bt_codec_datafmt;	/* Bluetooth codec data format */
+	int				  bt_codec_datafmt;	/* Bluetooth codec data format */
 	bool				  bt_codec_master;	/* If bt codec is master */
-#endif
 };
 
 /* mclk required for each sampling frequency */
@@ -183,27 +181,6 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	/* Get the requested sampling rate */
 	unsigned int srate = params_rate(params);
 
-#ifdef USE_ORG_DAS		
-	/* I2S <-> DAC <-> DAS <-> DAP <-> CODEC
-	   -If DAP is master, codec will be slave */
-	int codec_is_master = !tegra_das_is_port_master(tegra_audio_codec_type_hifi);
-	
-	/* Get DAS dataformat - DAP is connecting to codec */
-	enum dac_dap_data_format data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_hifi);
-
-	/* We are supporting DSP and I2s format for now */
-	int dai_flag = 0;
-	if (data_fmt & dac_dap_data_format_i2s)
-		dai_flag |= SND_SOC_DAIFMT_I2S;
-	else
-		dai_flag |= SND_SOC_DAIFMT_DSP_A;
-	
-	if (codec_is_master)
-		dai_flag |= SND_SOC_DAIFMT_CBM_CFM; /* codec is master */
-	else
-		dai_flag |= SND_SOC_DAIFMT_CBS_CFS; 
-#else
-
 	/* I2S <-> DAC <-> DAS <-> DAP <-> CODEC
 	   -If DAP is master, codec will be slave */
 	bool codec_is_master = machine->hifi_codec_master;
@@ -225,7 +202,6 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM; /* codec is master */
 	else
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
-#endif
 
 	dev_dbg(card->dev,"%s(): format: 0x%08x, channels:%d, srate:%d\n", __FUNCTION__,
 		params_format(params),params_channels(params),params_rate(params));
@@ -312,7 +288,7 @@ static int tegra_hifi_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
+static int tegra_bt_sco_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -322,27 +298,9 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_card* card		= codec->card;
 	struct tegra_alc5623* machine 	= snd_soc_card_get_drvdata(card);
 	
-	int sys_clk;
+	int sys_clk, srate, min_mclk;
 	int err;
 
-#ifdef USE_ORG_DAS
-		/* Get DAS dataformat and master flag */
-	int codec_is_master = !tegra_das_is_port_master(tegra_audio_codec_type_bluetooth);
-	enum dac_dap_data_format data_fmt = tegra_das_get_codec_data_fmt(tegra_audio_codec_type_bluetooth);
-
-	/* We are supporting DSP and I2s format for now */
-	int dai_flag = 0;
-	if (data_fmt & dac_dap_data_format_dsp)
-		dai_flag |= SND_SOC_DAIFMT_DSP_A;
-	else
-		dai_flag |= SND_SOC_DAIFMT_I2S;
-
-	if (codec_is_master)
-		dai_flag |= SND_SOC_DAIFMT_CBM_CFM; /* codec is master */
-	else
-		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
-#else
-	
 	/* Get DAS dataformat and master flag */
 	int codec_is_master = machine->bt_codec_master;
 
@@ -353,7 +311,6 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		dai_flag |= SND_SOC_DAIFMT_CBM_CFM; /* codec is master */
 	else
 		dai_flag |= SND_SOC_DAIFMT_CBS_CFS;
-#endif
 
 	dev_dbg(card->dev,"%s(): format: 0x%08x, channels:%d, srate:%d\n", __FUNCTION__,
 		params_format(params),params_channels(params),params_rate(params));
@@ -371,9 +328,40 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		dev_err(card->dev,"codec_dai fmt not set \n");
 		return err;
 	}
-	
+
 	/* Get system clock */
-	sys_clk = clk_get_rate(machine->util_data.clk_cdev1);
+	srate = params_rate(params);
+	switch (srate) {
+	case 11025:
+	case 22050:
+	case 44100:
+	case 88200:
+		sys_clk = 11289600;
+		break;
+	case 8000:
+	case 16000:
+	case 32000:
+	case 48000:
+	case 64000:
+	case 96000:
+		sys_clk = 12288000;
+		break;
+	default:
+		return -EINVAL;
+	}
+	min_mclk = 64 * srate;
+
+	err = tegra_asoc_utils_set_rate(&machine->util_data, srate, sys_clk);
+	if (err < 0) {
+		if (!(machine->util_data.set_mclk % min_mclk))
+			sys_clk = machine->util_data.set_mclk;
+		else {
+			dev_err(card->dev, "Can't configure clocks\n");
+			return err;
+		}
+	}
+
+	tegra_asoc_utils_lock_clk_rate(&machine->util_data, 1);
 
 	/* Set CPU sysclock as the same - in Tegra, seems to be a NOP */
 	err = snd_soc_dai_set_sysclk(cpu_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
@@ -381,14 +369,30 @@ static int tegra_voice_hw_params(struct snd_pcm_substream *substream,
 		dev_err(card->dev,"cpu_dai clock not set\n");
 		return err;
 	}
-	
+
 	/* Set CODEC sysclk */
 	err = snd_soc_dai_set_sysclk(codec_dai, 0, sys_clk, SND_SOC_CLOCK_IN);
 	if (err < 0) {
 		dev_err(card->dev,"cpu_dai clock not set\n");
 		return err;
 	}
-	
+
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
+	err = tegra20_das_connect_dac_to_dap(TEGRA20_DAS_DAP_SEL_DAC2,
+					TEGRA20_DAS_DAP_ID_4);
+	if (err < 0) {
+		dev_err(card->dev, "failed to set dac-dap path\n");
+		return err;
+	}
+
+	err = tegra20_das_connect_dap_to_dac(TEGRA20_DAS_DAP_ID_4,
+					TEGRA20_DAS_DAP_SEL_DAC2);
+	if (err < 0) {
+		dev_err(card->dev, "failed to set dac-dap path\n");
+		return err;
+	}
+#endif	
+
 	return 0;
 }
 
@@ -402,19 +406,6 @@ static int tegra_spdif_hw_params(struct snd_pcm_substream *substream,
 	dev_dbg(card->dev,"%s(): format: 0x%08x\n", __FUNCTION__,params_format(params));
 	return 0;
 }
-
-#ifdef USE_ORG_DAS
-static int tegra_codec_startup(struct snd_pcm_substream *substream)
-{
-	tegra_das_power_mode(true);
-	return 0;
-}
-
-static void tegra_codec_shutdown(struct snd_pcm_substream *substream)
-{
-	tegra_das_power_mode(false);
-}
-#endif 
 
 static int tegra_soc_suspend_pre(struct snd_soc_card* card)
 {
@@ -446,18 +437,10 @@ static int tegra_soc_resume_post(struct snd_soc_card *card)
 
 static struct snd_soc_ops tegra_hifi_ops = {
 	.hw_params = tegra_hifi_hw_params,
-#ifdef USE_ORG_DAS	
-	.startup = tegra_codec_startup,
-	.shutdown = tegra_codec_shutdown, 	
-#endif
 };
 
-static struct snd_soc_ops tegra_voice_ops = {
-	.hw_params = tegra_voice_hw_params,
-#ifdef USE_ORG_DAS	
-	.startup = tegra_codec_startup,
-	.shutdown = tegra_codec_shutdown, 	
-#endif
+static struct snd_soc_ops tegra_bt_sco_ops = {
+	.hw_params = tegra_bt_sco_hw_params,
 };
 
 static struct snd_soc_ops tegra_spdif_ops = {
@@ -477,20 +460,6 @@ static void tegra_audio_route(struct tegra_alc5623* machine,
 
 	pr_debug("%s(): is_bt_sco_mode: %d, is_call_mode: %d\n", __FUNCTION__, is_bt_sco_mode, is_call_mode);
 
-#ifdef USE_ORG_DAS
-	if (is_call_mode && is_bt_sco_mode) {
-		tegra_das_set_connection(tegra_das_port_con_id_voicecall_with_bt);
-	}
-	else if (is_call_mode && !is_bt_sco_mode) {
-		tegra_das_set_connection(tegra_das_port_con_id_voicecall_no_bt);
-	}
-	else if (!is_call_mode && is_bt_sco_mode) {
-		tegra_das_set_connection(tegra_das_port_con_id_bt_codec);
-	}
-	else {
-		tegra_das_set_connection(tegra_das_port_con_id_hifi);
-	}
-#endif
 	machine->play_device = play_device;
 	machine->capture_device = capture_device;
 }
@@ -1035,13 +1004,13 @@ static struct snd_soc_dai_link tegra_alc5623_dai[] = {
 		.ops = &tegra_hifi_ops,
 	},
 	{
-		.name = "VOICE",
-		.stream_name = "Tegra Generic Voice",
-		.codec_name = "tegra-generic-codec",
+		.name = "BT-SCO",
+		.stream_name = "BT SCO PCM",
+		.codec_name = "spdif-dit.1",
 		.platform_name = "tegra-pcm-audio",
 		.cpu_dai_name = "tegra20-i2s.1",
-		.codec_dai_name = "tegra_generic_voice_codec",
-		.ops = &tegra_voice_ops,
+		.codec_dai_name = "dit-hifi",
+		.ops = &tegra_bt_sco_ops,
 	},
 	{
 		.name = "SPDIF",
@@ -1121,13 +1090,11 @@ static __devinit int tegra_alc5623_driver_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, card);
 	snd_soc_card_set_drvdata(card, machine);
 
-#ifndef USE_ORG_DAS	
-	machine->hifi_codec_datafmt = pdata->hifi_codec_datafmt;	/* HiFi codec data format */
-	machine->hifi_codec_master = pdata->hifi_codec_master;		/* If Hifi codec is master */
-	machine->bt_codec_datafmt = pdata->bt_codec_datafmt;		/* Bluetooth codec data format */
-	machine->bt_codec_master = pdata->bt_codec_master;			/* If bt codec is master */
-#endif
-	
+	machine->hifi_codec_datafmt = pdata->hifi_codec_datafmt;  /* HiFi codec data format */
+	machine->hifi_codec_master = pdata->hifi_codec_master;    /* If Hifi codec is master */
+	machine->bt_codec_datafmt = pdata->bt_codec_datafmt;    /* Bluetooth codec data format */
+	machine->bt_codec_master = pdata->bt_codec_master;      /* If bt codec is master */
+
 	/* Add the device */
 	ret = snd_soc_register_card(card);
 	if (ret) {

@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-smba1006-audio.c
  *
- * Copyright (C) 2011 Eduardo José Tagle <ejtagle@tutopia.com>
+ * Copyright (C) 2011 Eduardo Jose Tagle <ejtagle@tutopia.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -155,11 +155,6 @@ static struct tegra_alc5623_platform_data smba_audio_pdata = {
 
 };
 
-static struct platform_device tegra_generic_codec = {
-	.name = "tegra-generic-codec",
-	.id   = -1,
-};
-
 static struct platform_device smba_audio_device = {
 	.name = "tegra-snd-alc5623",
 	.id   = 0,
@@ -175,8 +170,8 @@ static struct platform_device *smba_i2s_devices[] __initdata = {
 	&tegra_spdif_device,
 	&tegra_das_device,
 	&spdif_dit_device,
+	&bluetooth_dit_device,
 	&tegra_pcm_device,
-	&tegra_generic_codec,
 	&smba_audio_device, /* this must come last, as we need the DAS to be initialized to access the codec registers ! */
 };
 
