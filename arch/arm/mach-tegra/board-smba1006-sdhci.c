@@ -28,6 +28,7 @@
 #include <mach/sdhci.h>
 
 #include "gpio-names.h"
+#include "devices.h"
 #include "board.h"
 #include "board-smba1006.h"
 
@@ -54,45 +55,6 @@ static struct platform_device smba1006_wifi_device = {
 	},
 };
 
-static struct resource sdhci_resource0[] = {
-	[0] = {
-		.start	= INT_SDMMC1,
-		.end	= INT_SDMMC1,
-		.flags	= IORESOURCE_IRQ,
-	},
-	[1] = {
-		.start	= TEGRA_SDMMC1_BASE,
-		.end	= TEGRA_SDMMC1_BASE + TEGRA_SDMMC1_SIZE-1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource sdhci_resource2[] = {
-	[0] = {
-		.start	= INT_SDMMC3,
-		.end	= INT_SDMMC3,
-		.flags	= IORESOURCE_IRQ,
-	},
-	[1] = {
-		.start	= TEGRA_SDMMC3_BASE,
-		.end	= TEGRA_SDMMC3_BASE + TEGRA_SDMMC3_SIZE-1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource sdhci_resource3[] = {
-	[0] = {
-		.start	= INT_SDMMC4,
-		.end	= INT_SDMMC4,
-		.flags	= IORESOURCE_IRQ,
-	},
-	[1] = {
-		.start	= TEGRA_SDMMC4_BASE,
-		.end	= TEGRA_SDMMC4_BASE + TEGRA_SDMMC4_SIZE-1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
 #ifdef CONFIG_MMC_EMBEDDED_SDIO
 static struct embedded_sdio_data embedded_sdio_data0 = {
 	.cccr   = {
@@ -110,7 +72,7 @@ static struct embedded_sdio_data embedded_sdio_data0 = {
 };
 #endif
 
-static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
+static struct tegra_sdhci_platform_data tegra_sdhci_platform_data1 = {
 	.mmc_data = {
 		.register_status_notify	= smba1006_wifi_status_register,
 #ifdef CONFIG_MMC_EMBEDDED_SDIO
@@ -128,50 +90,37 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
-	.cd_gpio = SMBA1006_SDHC_CD,
-	.wp_gpio = SMBA1006_SDHC_WP,
-	.power_gpio = SMBA1006_SDHC_POWER,
+	.cd_gpio = -1,
+	.wp_gpio = -1,
+	.power_gpio = -1,
+	.has_no_vreg = 1,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
+	.cd_gpio = SMBA1006_SDHC_CD,
+	.wp_gpio = SMBA1006_SDHC_WP,
+	.power_gpio = SMBA1006_SDHC_POWER,
+	.bus_width = 4,
+};
+
+static struct tegra_sdhci_platform_data tegra_sdhci_platform_data4 = {
 	.is_8bit = 1,
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = SMBA1006_SDINT_POWER,
 	.max_clk_limit = 52000000,
+	.bus_width = 8,
 	.mmc_data = {
 		.built_in = 1,
 	}
 };
 
-static struct platform_device tegra_sdhci_device0 = {
-	.name		= "sdhci-tegra",
-	.id		= 0,
-	.resource	= sdhci_resource0,
-	.num_resources	= ARRAY_SIZE(sdhci_resource0),
-	.dev = {
-		.platform_data = &tegra_sdhci_platform_data0,
-	},
-};
-
-static struct platform_device tegra_sdhci_device2 = {
-	.name		= "sdhci-tegra",
-	.id		= 2,
-	.resource	= sdhci_resource2,
-	.num_resources	= ARRAY_SIZE(sdhci_resource2),
-	.dev = {
-		.platform_data = &tegra_sdhci_platform_data2,
-	},
-};
-
-static struct platform_device tegra_sdhci_device3 = {
-	.name		= "sdhci-tegra",
-	.id		= 3,
-	.resource	= sdhci_resource3,
-	.num_resources	= ARRAY_SIZE(sdhci_resource3),
-	.dev = {
-		.platform_data = &tegra_sdhci_platform_data3,
-	},
+static struct platform_device *smba1006_sdhci_devices[] __initdata = {
+	&tegra_sdhci_device1,
+//	&tegra_sdhci_device2,
+//have to init these out of order so that the eMMC card is registered first
+	&tegra_sdhci_device4,
+	&tegra_sdhci_device3,
 };
 
 static int smba1006_wifi_status_register(
@@ -254,10 +203,15 @@ static int __init smba_wifi_init(void)
 }
 int __init smba_sdhci_init(void)
 {
-	platform_device_register(&tegra_sdhci_device3); //INTERNAL SD CARD
-	platform_device_register(&tegra_sdhci_device2); //EXTERNAL SD CARD
-	platform_device_register(&tegra_sdhci_device0); //WIFI (BCMDHD)
+	int ret;
+        /* Plug in platform data */
+        tegra_sdhci_device1.dev.platform_data = &tegra_sdhci_platform_data1;
+        tegra_sdhci_device2.dev.platform_data = &tegra_sdhci_platform_data2;
+        tegra_sdhci_device3.dev.platform_data = &tegra_sdhci_platform_data3;
+        tegra_sdhci_device4.dev.platform_data = &tegra_sdhci_platform_data4;
+
+	ret = platform_add_devices(smba1006_sdhci_devices, ARRAY_SIZE(smba1006_sdhci_devices));
 
 	smba_wifi_init();
-	return 0;
+	return ret;
 }
