@@ -22,7 +22,9 @@
 #include <linux/gpio.h>
 #include <linux/regulator/consumer.h>
 #include <linux/pwm_backlight.h>
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
 #include <mach/dc.h>
 #include <mach/irqs.h>
 #include <mach/iomap.h>
@@ -80,6 +82,8 @@ static int smba_backlight_init(struct device *dev)
 	if (ret < 0)
 		gpio_free(SMBA1006_BL_ENB);
 	
+	gpio_sysfs_set_active_low(SMBA1006_BL_ENB, 1);
+
 	if (device_create_file(dev, &dev_attr_PQiModeOn))
 	    pr_err("%s: Failed to create PQi control!", __func__);
 
@@ -361,7 +365,42 @@ static struct platform_device *smba_gfx_devices[] __initdata = {
 #endif
 	&tegra_pwfm0_device,
 	&smba_backlight_device,
+	&tegra_gart_device,
+	&tegra_avp_device,
 };
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+/* put early_suspend/late_resume handlers here for the display in order
+ * to keep the code out of the display driver, keeping it closer to upstream
+ */
+struct early_suspend smba_panel_early_suspender;
+
+static void smba_panel_early_suspend(struct early_suspend *h)
+{
+	/* power down LCD, add use a black screen for HDMI */
+	if (num_registered_fb > 0)
+		fb_blank(registered_fb[0], FB_BLANK_POWERDOWN);
+	if (num_registered_fb > 1)
+		fb_blank(registered_fb[1], FB_BLANK_NORMAL);
+#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+	cpufreq_store_default_gov();
+	if (cpufreq_change_gov(cpufreq_conservative_gov))
+		pr_err("Early_suspend: Error changing governor to %s\n",
+				cpufreq_conservative_gov);
+#endif
+}
+
+static void smba_panel_late_resume(struct early_suspend *h)
+{
+	unsigned i;
+#ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
+	if (cpufreq_restore_default_gov())
+		pr_err("Early_suspend: Unable to restore governor\n");
+#endif
+	for (i = 0; i < num_registered_fb; i++)
+		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
+}
+#endif 
 
 int __init smba_panel_init(void)
 {
@@ -381,13 +420,22 @@ int __init smba_panel_init(void)
 	gpio_direction_input(SMBA1006_HDMI_HPD);
 
 #if defined(CONFIG_TEGRA_NVMAP)
-	smba_carveouts[1].base = tegra_carveout_start;
-	smba_carveouts[1].size = tegra_carveout_size;
+	/* Plug in carveout memory area and size */
+	if (tegra_carveout_start > 0 && tegra_carveout_size > 0) {
+		smba_carveouts[1].base = tegra_carveout_start;
+		smba_carveouts[1].size = tegra_carveout_size;
+	}
 #endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	smba_panel_early_suspender.suspend = smba_panel_early_suspend;
+	smba_panel_early_suspender.resume = smba_panel_late_resume;
+	smba_panel_early_suspender.level = EARLY_SUSPEND_LEVEL_DISABLE_FB;
+	register_early_suspend(&smba_panel_early_suspender);
+#endif 
 
 #ifdef CONFIG_TEGRA_GRHOST
 	err = nvhost_device_register(&tegra_grhost_device);
-	//err = tegra2_register_host1x_devices();  //PROBABLY GOING TO ERROR
 	if (err)
 		return err;
 #endif
@@ -397,28 +445,44 @@ int __init smba_panel_init(void)
 	if (err)
 		return err;
 
-	res = nvhost_get_resource_byname(&smba_disp1_device,
-		IORESOURCE_MEM, "fbmem");
-	if (res) {
-		res->start = tegra_fb_start;
-		res->end = tegra_fb_start + tegra_fb_size - 1;
+#if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)			
+	/* Plug in framebuffer 1 memory area and size */
+	if (tegra_fb_start > 0 && tegra_fb_size > 0) {
+		res = nvhost_get_resource_byname(&smba_disp1_device,
+			IORESOURCE_MEM, "fbmem");
+		if (res) {
+			res->start = tegra_fb_start;
+			res->end = tegra_fb_start + tegra_fb_size - 1;
+		}
 	}
 
-	res = nvhost_get_resource_byname(&smba_disp2_device,
-		IORESOURCE_MEM, "fbmem");
-	if (res) {
-		res->start = tegra_fb2_start;
-		res->end = tegra_fb2_start + tegra_fb2_size - 1;
+	/* Plug in framebuffer 2 memory area and size */
+	if (tegra_fb2_start > 0 && tegra_fb2_size > 0) {
+		res = nvhost_get_resource_byname(&smba_disp2_device,
+			IORESOURCE_MEM, "fbmem");
+		if (res) {
+			res->start = tegra_fb2_start;
+			res->end = tegra_fb2_start + tegra_fb2_size - 1;
+		}
 	}
+#endif
 
-	/* Copy the bootloader fb to the fb. */
-	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
-		tegra_fb_size, tegra_bootloader_fb_size);	
+	/* Move the bootloader framebuffer to our framebuffer */
+	if (tegra_bootloader_fb_start > 0 && tegra_fb_start > 0 &&
+		tegra_fb_size > 0 && tegra_bootloader_fb_size > 0) {
+
+		/* Copy the bootloader fb to the fb. */
+		tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
+			tegra_fb_size, tegra_bootloader_fb_size);	
 		
-	/* Copy the bootloader fb to the fb2. */
-	tegra_move_framebuffer(tegra_fb2_start, tegra_bootloader_fb_start,
-		tegra_fb2_size, tegra_bootloader_fb_size);
-			
+		/* Copy the bootloader fb to the fb2. */
+		tegra_move_framebuffer(tegra_fb2_start, tegra_bootloader_fb_start,
+			tegra_fb2_size, tegra_bootloader_fb_size);
+	
+	}
+
+#if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
+	/* Register the framebuffers */
 	err = nvhost_device_register(&smba_disp1_device);
 	if (err)
 		return err;
@@ -426,8 +490,24 @@ int __init smba_panel_init(void)
 	err = nvhost_device_register(&smba_disp2_device);
 	if (err)
 		return err;
+#endif
+
+#if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_NVAVP)
+	/* Register the nvavp device */
+        err = nvhost_device_register(&nvavp_device);
+	if (err)
+                return err;
+#endif
 
 	return 0;
 }
 
+int __init smba_protected_aperture_init(void)
+{
+	if (tegra_grhost_aperture > 0) {
+		tegra_protected_aperture_init(tegra_grhost_aperture);
+	}
+	return 0;
+}
+late_initcall(smba_protected_aperture_init);
 

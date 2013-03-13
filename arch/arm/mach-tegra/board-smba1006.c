@@ -129,12 +129,10 @@ static struct platform_device smba_bluesleep_device = {
 
 static struct platform_device *smba_devices[] __initdata = {
 	&tegra_pmu_device,
-	&tegra_gart_device,
 	&tegra_aes_device,
 	&bluetooth_rfkill_device,
 	&smba_bluesleep_device,
 	&tegra_wdt_device,
-	&tegra_avp_device,
 };
 
 static void __init tegra_smba_init(void)
