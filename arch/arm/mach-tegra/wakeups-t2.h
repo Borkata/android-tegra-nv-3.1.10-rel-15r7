@@ -49,7 +49,12 @@ int tegra_wake_to_irq(int wake);
 #define TEGRA_WAKE_RTC_ALARM	(1 << 16)
 #define TEGRA_WAKE_KBC_EVENT	(1 << 17)
 #define TEGRA_WAKE_PWR_INT	(1 << 18)
+
+#ifdef CONFIG_MACH_SMBA1006
+#define TEGRA_WAKE_GPIO_PH0	(1 << 19)
+#else
 #define TEGRA_WAKE_USB1_VBUS	(1 << 19)
+#endif
 #define TEGRA_WAKE_USB3_VBUS	(1 << 20)
 #define TEGRA_WAKE_USB1_ID	(1 << 21)
 #define TEGRA_WAKE_USB3_ID	(1 << 22)
