@@ -100,6 +100,9 @@ static struct tegra_sdhci_hw_ops tegra_3x_sdhci_ops = {
 
 struct tegra_sdhci_host {
 	bool	clk_enabled;
+	char	wp_gpio_name[32];
+	char	cd_gpio_name[32];
+	char	power_gpio_name[32];
 	struct regulator *vdd_io_reg;
 	struct regulator *vdd_slot_reg;
 	/* Pointer to the chip specific HW ops */
@@ -975,7 +978,8 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 #endif
 
 	if (gpio_is_valid(plat->power_gpio)) {
-		rc = gpio_request(plat->power_gpio, "sdhci_power");
+		snprintf(tegra_host->power_gpio_name,sizeof(tegra_host->power_gpio_name),"sdhci%d_power",pdev->id);
+		rc = gpio_request(plat->power_gpio, tegra_host->power_gpio_name);
 		if (rc) {
 			dev_err(mmc_dev(host->mmc),
 				"failed to allocate power gpio\n");
@@ -986,7 +990,8 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(plat->cd_gpio)) {
-		rc = gpio_request(plat->cd_gpio, "sdhci_cd");
+		snprintf(tegra_host->cd_gpio_name,sizeof(tegra_host->cd_gpio_name),"sdhci%d_cd",pdev->id);
+		rc = gpio_request(plat->cd_gpio, tegra_host->cd_gpio_name);
 		if (rc) {
 			dev_err(mmc_dev(host->mmc),
 				"failed to allocate cd gpio\n");
@@ -1021,7 +1026,8 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 	}
 
 	if (gpio_is_valid(plat->wp_gpio)) {
-		rc = gpio_request(plat->wp_gpio, "sdhci_wp");
+		snprintf(tegra_host->wp_gpio_name,sizeof(tegra_host->wp_gpio_name),"sdhci%d_wp",pdev->id);
+		rc = gpio_request(plat->wp_gpio, tegra_host->wp_gpio_name);
 		if (rc) {
 			dev_err(mmc_dev(host->mmc),
 				"failed to allocate wp gpio\n");
