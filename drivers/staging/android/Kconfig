@@ -16,6 +16,11 @@ config ANDROID_LOGGER
 	tristate "Android log driver"
 	default n
 
+config ANDROID_LOGGER_TO_KMSG
+	bool "Redirect android logger to kernel log"
+	default n
+	depends on ANDROID_LOGGER
+
 config ANDROID_RAM_CONSOLE
 	bool "Android RAM buffer console"
 	default n
