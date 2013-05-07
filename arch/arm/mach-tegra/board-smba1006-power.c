@@ -31,6 +31,7 @@
 
 #include <generated/mach-types.h>
 
+#include "devices.h"
 #include "gpio-names.h"
 #include "fuse.h"
 #include "pm.h"
@@ -115,6 +116,10 @@ static struct regulator_consumer_supply tps658621_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_ddr_rx", NULL),
 	REGULATOR_SUPPLY("vddio_vi", NULL),
 	REGULATOR_SUPPLY("avdd_amp", NULL),
+};
+
+static struct regulator_consumer_supply tps658621_rtc_supply[] = {
+	REGULATOR_SUPPLY("vdd_rtc_2", NULL)
 };
 
 /* regulator supplies power to WLAN - enable here, to satisfy SDIO probing */
@@ -238,6 +243,8 @@ static struct regulator_init_data ldo6_data = REGULATOR_INIT(ldo6, 1800, 1800, O
 static struct regulator_init_data ldo7_data = REGULATOR_INIT(ldo7, 1250, 3300, OFF, NULL);
 static struct regulator_init_data ldo8_data = REGULATOR_INIT(ldo8, 1250, 3300, OFF, NULL);
 static struct regulator_init_data ldo9_data = REGULATOR_INIT(ldo9, 1250, 3300, ON, NULL);
+static struct regulator_init_data rtc_reg_data = REGULATOR_INIT(rtc, 1250, 3300, ON, NULL);
+
 
 static struct tps6586x_rtc_platform_data rtc_data = {
 	.irq = TEGRA_NR_IRQS + TPS6586X_INT_RTC_ALM1,
@@ -277,6 +284,7 @@ static struct tps6586x_subdev_info tps_devs[] = {
 	TPS_REG(LDO_7, &ldo7_data),
 	TPS_REG(LDO_8, &ldo8_data),
 	TPS_REG(LDO_9, &ldo9_data),
+	TPS_REG(LDO_RTC, &rtc_reg_data),
 	//TPS_GPIO_FIXED_REG(0, &vdd_1v5),
 	TPS_GPIO_FIXED_REG(1, &vdd_1v2),
 	TPS_GPIO_FIXED_REG(2, &vdd_1v05),
@@ -302,6 +310,31 @@ static struct i2c_board_info __initdata smba_regulators[] = {
 		.irq		= INT_EXTERNAL_PMU,
 		.platform_data	= &tps_platform,
 	},
+};
+
+/* missing from defines ... remove ASAP when defined in devices.c */
+static struct resource tegra_rtc_resources[] = {
+	[0] = {
+		.start	= TEGRA_RTC_BASE,
+		.end	= TEGRA_RTC_BASE + TEGRA_RTC_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= INT_RTC,
+		.end	= INT_RTC,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device tegra_rtc_device = {
+	.name		= "tegra_rtc",
+	.id		= -1,
+	.resource	= tegra_rtc_resources,
+	.num_resources	= ARRAY_SIZE(tegra_rtc_resources),
+};
+
+static struct platform_device *smba_power_devices[] __initdata = {
+	&tegra_rtc_device,	
 };
 
 static void smba_board_suspend(int lp_state, enum suspend_stage stg)
@@ -354,7 +387,9 @@ int __init smba_regulator_init(void)
 //	regulator_has_full_constraints();
 	tegra_init_suspend(&smba_suspend_data);
 
-	return 0;
+	/* register all pm devices - This must come AFTER the registration of the TPS i2c interfase,
+	   as we need the GPIO definitions exported by that driver */
+	return platform_add_devices(smba_power_devices, ARRAY_SIZE(smba_power_devices));
 }
 
 
