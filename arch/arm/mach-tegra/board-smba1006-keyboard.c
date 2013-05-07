@@ -57,7 +57,7 @@ static struct gpio_keys_button smba_keys[] = {
 		.gpio = SMBA1006_KEY_POWER,
 		.active_low = true,
 		.debounce_interval = 10,
-		.wakeup = true,		
+		.wakeup = false,
 		.code = KEY_POWER,
 		.type = EV_KEY,		
 		.desc = "power",
@@ -80,7 +80,7 @@ static int smba_wakeup_key(void)
 	unsigned long status =
 		readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
 
-	return (status & SMBA1006_WAKE_KEY_POWER) ?
+	return (status & SMBA1006_WAKE_KEY_BACK) ?
 		KEY_POWER : KEY_RESERVED;	
 }
 
