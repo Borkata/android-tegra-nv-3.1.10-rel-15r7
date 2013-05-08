@@ -48,6 +48,8 @@
 #include "gpio-names.h"
 #include "devices.h"
 
+#define DEBUG
+
 #define S5K4CDGX_POWER_PIN TEGRA_GPIO_PBB5
 #define S5K4CDGX_RESET_PIN TEGRA_GPIO_PD2
 
@@ -123,6 +125,7 @@ static struct tegra_camera_platform_data smba_camera_pdata = {
   .disable_camera = &smba_disable_camera,
   .flip_h = 0,
   .flip_v = 0,
+  .port = TEGRA_CAMERA_PORT_VIP,
 };
 
 int __init smba_camera_register_devices(void)
