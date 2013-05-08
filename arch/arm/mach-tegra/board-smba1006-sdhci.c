@@ -47,9 +47,20 @@ static struct wifi_platform_data smba1006_wifi_control = {
 	.set_carddetect = smba1006_wifi_set_carddetect,
 };
 
+static struct resource wifi_resource[] = {
+	[0] = {
+		.name  = "bcmdhd_wlan_irq",
+		.start = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PS0),
+		.end   = TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PS0),
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
+	},
+};
+
 static struct platform_device smba1006_wifi_device = {
 	.name		= "bcmdhd_wlan",
 	.id		= 1,
+	.num_resources  = 1,
+	.resource	= wifi_resource,
 	.dev		= {
 		.platform_data = &smba1006_wifi_control,
 	},
@@ -84,12 +95,14 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data1 = {
 #ifndef CONFIG_MMC_EMBEDDED_SDIO
 	.pm_flags = MMC_PM_KEEP_POWER,
 #endif
+	.wow_gpio = TEGRA_GPIO_PY6,
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
+	.wow_gpio = -1,
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
@@ -97,6 +110,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
+	.wow_gpio = -1,
 	.cd_gpio = SMBA1006_SDHC_CD,
 	.wp_gpio = SMBA1006_SDHC_WP,
 	.power_gpio = SMBA1006_SDHC_POWER,
@@ -105,6 +119,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data4 = {
 	.is_8bit = 1,
+	.wow_gpio = -1,
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = SMBA1006_SDINT_POWER,
@@ -190,8 +205,10 @@ static int __init smba_wifi_init(void)
 
 	gpio_request(SMBA1006_WL_BT_POWER, "wlan_power");
 	gpio_request(SMBA1006_WLAN_RESET, "wlan_rst");
+	gpio_request(TEGRA_GPIO_PY6, "bcmsdh_sdmmc");
 
 	gpio_direction_output(SMBA1006_WL_BT_POWER, 0);
+	gpio_direction_input(TEGRA_GPIO_PY6);
 	gpio_direction_output(SMBA1006_WLAN_RESET, 0);
 
 	platform_device_register(&smba1006_wifi_device);
