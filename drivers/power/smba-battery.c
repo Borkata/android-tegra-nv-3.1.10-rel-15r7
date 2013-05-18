@@ -131,6 +131,8 @@ static int smba_bat_get_property(struct power_supply *psy,
 static int smba_ac_get_property(struct power_supply *psy,
 	enum power_supply_property psp, union power_supply_propval *val);
 
+int battery_percent;
+
 enum supply_type {
 	SUPPLY_TYPE_BATTERY = 0,
 	SUPPLY_TYPE_AC,
@@ -271,7 +273,7 @@ static int smba_get_battery_property(struct i2c_client *client, int reg_offset,
 				POWER_SUPPLY_STATUS_CHARGING :
 				POWER_SUPPLY_STATUS_DISCHARGING;
 
-			if (ret & BATTERY_FULL_CHARGED)
+			if(battery_percent > 99)
 				val->intval = POWER_SUPPLY_STATUS_FULL;
 		}
 	} else {
@@ -337,6 +339,9 @@ static int smba_get_battery_capacity(struct i2c_client *client,
 		val->intval = min(ret, 100);
 	} else
 		val->intval = ret;
+
+	if(val->intval < 101)
+		battery_percent = val->intval;
 
 	return 0;
 }
@@ -589,8 +594,7 @@ static int smba_resume(struct i2c_client *client)
 #endif
 
 static const struct i2c_device_id smba_id[] = {
-	{ "bq20z75", 0 },
-	{ "smba-battery", 1 },
+	{ "smba-battery", 0 },
 	{}
 };
 
