@@ -135,6 +135,45 @@ static struct platform_device *smba_devices[] __initdata = {
 	&tegra_wdt_device,
 };
 
+static atomic_t smba_gps_mag_powered = ATOMIC_INIT(0);
+void smba_gps_mag_poweron(void)
+{
+	if (atomic_inc_return(&smba_gps_mag_powered) == 1) {
+		pr_info("Enabling GPS/Magnetic module\n");
+		/* 3G/GPS power on sequence */
+		gpio_set_value(SMBA1006_GPSMAG_DISABLE, 1); /* Enable power */
+		msleep(2);
+	}
+}
+EXPORT_SYMBOL_GPL(smba_gps_mag_poweron);
+
+void smba_gps_mag_poweroff(void)
+{
+	if (atomic_dec_return(&smba_gps_mag_powered) == 0) {
+		pr_info("Disabling GPS/Magnetic module\n");
+		/* 3G/GPS power on sequence */
+		gpio_set_value(SMBA1006_GPSMAG_DISABLE, 0); /* Disable power */
+		msleep(2);
+	}
+}
+EXPORT_SYMBOL_GPL(smba_gps_mag_poweroff);
+
+static atomic_t smba_gps_mag_inited = ATOMIC_INIT(0);
+void smba_gps_mag_init(void)
+{
+	if (atomic_inc_return(&smba_gps_mag_inited) == 1) {
+		gpio_request(SMBA1006_GPSMAG_DISABLE, "gps_disable");
+		gpio_direction_output(SMBA1006_GPSMAG_DISABLE, 0);
+	}
+}
+EXPORT_SYMBOL_GPL(smba_gps_mag_init);
+
+void smba_gps_mag_deinit(void)
+{
+	atomic_dec(&smba_gps_mag_inited);
+}
+EXPORT_SYMBOL_GPL(smba_gps_mag_deinit);
+
 static void __init tegra_smba_init(void)
 {
 	/* Initialize the pinmux */
@@ -186,6 +225,10 @@ static void __init tegra_smba_init(void)
 	
 	/* Register Bluetooth powermanagement devices */
 	smba_setup_bluesleep();
+
+	/* GPS Setup */
+	smba_gps_mag_init();
+	smba_gps_mag_poweron();
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();

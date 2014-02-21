@@ -96,6 +96,9 @@
 #define AVDD_DSI_CSI_ENB_GPIO	TPS6586X_GPIO(1) /* gpio2 */
 #define TPS6586X_GPIO_END	TPS6586X_GPIO(TPS6586X_NR_GPIOS - 1)
 
+extern void smba_gps_mag_poweron(void);
+extern void smba_gps_mag_poweroff(void);
+extern void smba_gps_mag_init(void);
 extern int  smba_pinmux_init(void);
 extern void smba_clks_init(void);
 extern int smba_usb_register_devices(void);
