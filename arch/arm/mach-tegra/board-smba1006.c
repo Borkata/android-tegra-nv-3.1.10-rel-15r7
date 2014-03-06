@@ -214,6 +214,9 @@ static void __init tegra_smba_init(void)
 	/* Register accelerometer device */
 	smba_sensors_register_devices();
 	
+	/* Register GPS power management */
+	smba_gps_pm_register_devices();
+
 	/* Register Camera powermanagement devices */
 	smba_camera_register_devices();
 

@@ -116,5 +116,6 @@ extern int smba_camera_register_devices(void);
 extern int smba_charge_init(void);
 extern int smba_regulator_init(void);
 extern int smba_s5k4cdgx_set_power(int enable);
+extern int smba_gps_pm_register_devices(void);
 
 #endif
