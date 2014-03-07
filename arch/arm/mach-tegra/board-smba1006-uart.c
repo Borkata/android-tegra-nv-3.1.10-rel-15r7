@@ -60,9 +60,9 @@ static struct platform_device *smba_uart_devices[] __initdata = {
 
 /* Prefer lower clocks if possible */
 static struct uart_clk_parent uart_parent_clk[] = {
-	[0] = {.name = "clk_m"}, 	//  12000000
-	[1] = {.name = "pll_p"},	// 216000000
-	[2] = {.name = "pll_c"},	// 600000000
+	[0] = {.name = "pll_p"},	// 216000000
+	[1] = {.name = "pll_m"},
+        [2] = {.name = "clk_m"},        //  12000000
 };
 
 static struct tegra_uart_platform_data smba_uart_pdata;
@@ -73,7 +73,8 @@ static void __init uart_debug_init(void)
 
 	debug_port_id = get_tegra_uart_debug_port_id();
 	if (debug_port_id < 0)
-		debug_port_id = 3;
+		//debug_port_id = 3;
+		pr_err("UART debug init: debug_port_id < 0");
 
 	switch (debug_port_id) {
 	case 0:
