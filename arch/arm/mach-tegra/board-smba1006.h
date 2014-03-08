@@ -20,6 +20,8 @@
 #ifndef _MACH_TEGRA_BOARD_SMBA1006_H
 #define _MACH_TEGRA_BOARD_SMBA1006_H
 
+#define SMBA1006_48KHZ_AUDIO
+
 // SMBA1006 GPIOs
 
 #define SMBA1006_BL_PWM_ID		0		/* PWM0 controls backlight */
