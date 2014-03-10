@@ -274,24 +274,6 @@ struct s5k4cdgx {
 	unsigned int power;
 };
 
-static struct s5k4cdgx_regval s5k4cdgx_analog_config[] = {
-	/* Analog settings */
-/*	{ 0x112a, 0x0000 }, { 0x1132, 0x0000 },
-	{ 0x113e, 0x0000 }, { 0x115c, 0x0000 },
-	{ 0x1164, 0x0000 }, { 0x1174, 0x0000 },
-	{ 0x1178, 0x0000 }, { 0x077a, 0x0000 },
-	{ 0x077c, 0x0000 }, { 0x077e, 0x0000 },
-	{ 0x0780, 0x0000 }, { 0x0782, 0x0000 },
-	{ 0x0784, 0x0000 }, { 0x0786, 0x0000 },
-	{ 0x0788, 0x0000 }, { 0x07a2, 0x0000 },
-	{ 0x07a4, 0x0000 }, { 0x07a6, 0x0000 },
-	{ 0x07a8, 0x0000 }, { 0x07b6, 0x0000 },
-	{ 0x07b8, 0x0002 }, { 0x07ba, 0x0004 },
-	{ 0x07bc, 0x0004 }, { 0x07be, 0x0005 },
-	{ 0x07c0, 0x0005 }, { S5K4CDGX_TERM, 0 },*/
-    { S5K4CDGX_TERM, 0 },
-};
-
 /* TODO: Add RGB888 and Bayer format */
 static const struct s5k4cdgx_pixfmt s5k4cdgx_formats[] = {
 	{ V4L2_MBUS_FMT_YUYV8_2X8, V4L2_COLORSPACE_JPEG, 5 },
@@ -479,30 +461,6 @@ static int s5k4cdgx_read(struct i2c_client *client, u32 addr, u16 *val)
 	if (!ret)
 		dev_err(&client->dev, "Failed to execute read command 0x%x\n",val);
 		
-	return ret;
-}
-
-static int s5k4cdgx_write_array(struct v4l2_subdev *sd,
-			      const struct s5k4cdgx_regval *msg)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	u16 addr_incr = 0;
-	int ret = 0;
-
-	while (msg->addr != S5K4CDGX_TERM) {
-		if (addr_incr != 2)
-			ret = s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRL,
-					       msg->addr);
-		if (ret)
-			break;
-		ret = s5k4cdgx_i2c_write(client, REG_CMDBUF0_ADDR, msg->val);
-		if (ret)
-			break;
-		/* Assume that msg->addr is always less than 0xfffc */
-		addr_incr = (msg + 1)->addr - msg->addr;
-		msg++;
-	}
-
 	return ret;
 }
 
@@ -789,36 +747,6 @@ static int s5k4cdgx_set_input_params(struct s5k4cdgx *s5k4cdgx)
 	return ret;
 }
 
-/**
- * s5k4cdgx_configure_video_bus - configure the video output interface
- * @bus_type: video bus type: parallel or MIPI-CSI
- * @nlanes: number of MIPI lanes to be used (MIPI-CSI only)
- *
- * Note: Only parallel bus operation has been tested.
- */
-static int s5k4cdgx_configure_video_bus(struct s5k4cdgx *s5k4cdgx,
-				      enum v4l2_mbus_type bus_type, int nlanes)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(&s5k4cdgx->sd);
-	u16 cfg = 0;
-	int ret;
-
-	/*
-	 * TODO: The sensor is supposed to support BT.601 and BT.656
-	 * but there is nothing indicating how to switch between both
-	 * in the datasheet. For now default BT.601 interface is assumed.
-	 */
-	if (bus_type == V4L2_MBUS_CSI2)
-		cfg = nlanes;
-	else if (bus_type != V4L2_MBUS_PARALLEL)
-		return -EINVAL;
-
-	ret = s5k4cdgx_write(client, REG_OIF_EN_MIPI_LANES, cfg);
-	if (ret)
-		return ret;
-	return s5k4cdgx_write(client, REG_OIF_CFG_CHG, 1);
-}
-
 /* This function should be called when switching to new user configuration set*/
 static int s5k4cdgx_new_config_sync(struct i2c_client *client, int timeout,
 				  int cid)
@@ -922,13 +850,55 @@ static int s5k4cdgx_initialize_isp(struct v4l2_subdev *sd)
 		return ret;
 
 	msleep(100);
-
-	// Do not call configure video bus for now since s5k4cdgx do not have these regs
-	//ret = s5k4cdgx_configure_video_bus(s5k4cdgx, s5k4cdgx->bus_type,
-	//				 s5k4cdgx->mipi_lanes);
-	//if (ret)
-	//	return ret;
-    
+ 
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_io_driving_current, ARRAY_SIZE(s5k4cdgx_init_reg_io_driving_current));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for IO Driving Current\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_trap_and_patch, ARRAY_SIZE(s5k4cdgx_init_reg_trap_and_patch));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for Trap&Patch\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_af, ARRAY_SIZE(s5k4cdgx_init_reg_af));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for AF\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_factory, ARRAY_SIZE(s5k4cdgx_init_reg_factory));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for CIS/APS/Analog\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_frame_rate, ARRAY_SIZE(s5k4cdgx_init_reg_frame_rate));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for Frame Rate\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_pll, ARRAY_SIZE(s5k4cdgx_init_reg_pll));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for PLL\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_preview_conf0, ARRAY_SIZE(s5k4cdgx_init_preview_conf0));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for Preview Configuration 0\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_capture_conf0, ARRAY_SIZE(s5k4cdgx_init_capture_conf0));
+	if (ret) {
+		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for Capture Configuration 0\n", __func__);
+		return ret;
+	}	
+	
     ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_config1, ARRAY_SIZE(s5k4cdgx_init_reg_config1));
     if (ret) {
 		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg 1\n", __func__);
@@ -936,12 +906,57 @@ static int s5k4cdgx_initialize_isp(struct v4l2_subdev *sd)
 	}
 
 	msleep(10);	
-	//ret = s5k4cdgx_write_array(sd, s5k4cdgx_analog_config);
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_jpeg, ARRAY_SIZE(s5k4cdgx_init_reg_jpeg));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for JPEG\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_gas, ARRAY_SIZE(s5k4cdgx_init_reg_gas));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for GAS (Grid Anti-shading)\n", __func__);
+		return ret;
+	}
+
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_ccm, ARRAY_SIZE(s5k4cdgx_init_reg_ccm));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for CCM\n", __func__);
+		return ret;
+	}	
+
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_awb, ARRAY_SIZE(s5k4cdgx_init_reg_awb));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for AWB\n", __func__);
+		return ret;
+	}	
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_ae, ARRAY_SIZE(s5k4cdgx_init_reg_ae));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for AE\n", __func__);
+		return ret;
+	}	
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_gamma_lut, ARRAY_SIZE(s5k4cdgx_init_reg_gamma_lut));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for Gamma LUT\n", __func__);
+		return ret;
+	}
+	
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_afit, ARRAY_SIZE(s5k4cdgx_init_reg_afit));
+	if (ret) {
+        v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg for AFIT table\n", __func__);
+		return ret;
+	}
+	
+	// Update changed registers in init reg config2 sequence
 	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_config2, ARRAY_SIZE(s5k4cdgx_init_reg_config2));
 	if (ret) {
         v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg 2\n", __func__);
 		return ret;
 	}
+	
+	
 
 	msleep(20);
 
