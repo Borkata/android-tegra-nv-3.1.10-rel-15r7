@@ -41,8 +41,8 @@ struct s5k4cdgx_request {
 //						: 09.11.03	Initial draft (based LG-SB210 tuning value)
 //						: 09.11.06	Changed GAS LUT & Alpha & AFIT for Shading compensation
 //=================================================================================================
-
-static struct s5k4cdgx_request s5k4cdgx_init_reg_config1[] ={
+//out from config1 - step 1
+static struct s5k4cdgx_request s5k4cdgx_init_reg_io_driving_current[] ={
 //p20								
 // Set IO driving current
 S5K4CDGX_PAGE(0xD000),
@@ -51,6 +51,10 @@ S5K4CDGX_DATA(0x0155), // [9:8] D4, [7:6] D3, [5:4] D2, [3:2] D1, [1:0] D0
 S5K4CDGX_DATA(0x0155), // [9:8] D9, [7:6] D8, [5:4] D7, [3:2] D6, [1:0] D5
 S5K4CDGX_DATA(0x00A9), // [5:4] GPIO3, [3:2] GPIO2, [1:0] GPIO1
 S5K4CDGX_DATA(0x0555), // [11:10] SDA, [9:8] SCA, [7:6] PCLK, [3:2] VSYNC, [1:0] HSYNC
+};
+
+//out from config1 - step 2 
+static struct s5k4cdgx_request s5k4cdgx_init_reg_trap_and_patch[] ={
 //=================================================================================================
 //	Trap & Patch
 //	(need in case of using standby mode)
@@ -175,7 +179,10 @@ S5K4CDGX_DATA(0xFF1C),
 S5K4CDGX_DATA(0xE12F),
 S5K4CDGX_DATA(0xF00F),
 S5K4CDGX_DATA(0x0000),
+};
 
+//out from config1 - step 3 
+static struct s5k4cdgx_request s5k4cdgx_init_reg_af[] ={
 //================================================================================================
 //	AF Initialize
 //================================================================================================
@@ -242,7 +249,10 @@ S5K4CDGX_DATA(0x03AA),
 S5K4CDGX_REG(0x1036),
 S5K4CDGX_DATA(0x4040),
 S5K4CDGX_DATA(0x9090),
+};
 
+//out from config1 - step 4
+static struct s5k4cdgx_request s5k4cdgx_init_reg_factory[]={
 //=================================================================================================
 //	Set CIS/APS/Analog
 //=================================================================================================
@@ -518,8 +528,10 @@ S5K4CDGX_DATA(0x0001),	// #gisp_msm_NonLinearOfsOutput_2_
 S5K4CDGX_DATA(0x0002),	// #gisp_msm_NonLinearOfsOutput_3_
 S5K4CDGX_DATA(0x0003),	// #gisp_msm_NonLinearOfsOutput_4_
 S5K4CDGX_DATA(0x0002),	// #gisp_msm_NonLinearOfsOutput_5_
+};
 
-
+//out from config1 - step 5
+static struct s5k4cdgx_request s5k4cdgx_init_reg_frame_rate[] ={
 //================================================================================================
 //	Set Frame Rate
 //================================================================================================
@@ -559,7 +571,10 @@ S5K4CDGX_REG(0x0588),
 S5K4CDGX_DATA(0x0300),	// #lt_uMaxDigGain	: Digital gain = x3
 S5K4CDGX_REG(0x114E),
 S5K4CDGX_DATA(0x0AC0),	// #SenHal_ExpMinPixels	: 2752
+};
 
+//out from config1 - step 6
+static struct s5k4cdgx_request s5k4cdgx_init_reg_pll[] ={
 //================================================================================================
 //	Set PLL
 //================================================================================================
@@ -600,6 +615,10 @@ S5K4CDGX_DATA(0x0001),	// #REG_TC_IPRM_InitParamsUpdated
 //0F12 0001
 S5K4CDGX_REG(0x052E),
 S5K4CDGX_DATA(0x077F),
+};
+
+//out from config1 - step 7
+static struct s5k4cdgx_request s5k4cdgx_init_preview_conf0[] ={
 //================================================================================================
 //	Set preview configuration0
 //	# Preview foramt	: YUV422
@@ -628,7 +647,10 @@ S5K4CDGX_DATA(0x01C6), //	// #REG_0TC_PCFG_usMinFrTimeMsecMult10	: 15fps
  S5K4CDGX_REG(0x0310), //edison: 
  S5K4CDGX_DATA(0x0003),		//preview mirro, 0,1,2,3 different directions
  S5K4CDGX_DATA(0x0003),  //Capture mirro, 0,1,2,3 different directions
+};
 
+//out from config1 - step 8
+static struct s5k4cdgx_request s5k4cdgx_init_capture_conf0[] ={
 //================================================================================================
 //	Set capture configuration0
 //	# Capture foramt	: YUV
@@ -651,11 +673,10 @@ S5K4CDGX_DATA(0x0000),	// #REG_0TC_CCFG_usFrTimeType
 S5K4CDGX_DATA(0x0002),	// #REG_0TC_CCFG_FrRateQualityType
 S5K4CDGX_DATA(0x0535),	// #REG_0TC_CCFG_usMaxFrTimeMsecMult10	: 7.5fps
 S5K4CDGX_DATA(0x0535),	// #REG_0TC_CCFG_usMinFrTimeMsecMult10	: 7.5fps
+};
 
-
-
-
-
+// Update preview & capture configurations, run preview and set host interrupt
+static struct s5k4cdgx_request s5k4cdgx_init_reg_config1[] ={
 // Update preview & capture configuration
 S5K4CDGX_REG(0x02AC),
 S5K4CDGX_DATA(0x0000),	// #REG_TC_GP_ActivePrevConfig
@@ -682,9 +703,9 @@ S5K4CDGX_REG(0x1000),
 S5K4CDGX_DATA(0x0001),
 };
 
-static struct s5k4cdgx_request s5k4cdgx_init_reg_config2[] ={
+//out from config2 - step 1
+static struct s5k4cdgx_request s5k4cdgx_init_reg_jpeg[] ={
 //p10
-
 
 //0028 D000  // color bar
 //002A 3100
@@ -710,8 +731,10 @@ S5K4CDGX_DATA(0x005A),	// #Capture_BRC : Super Fine (90d)
 //0F12 0050	// #REG_0TC_CCFG_OIFMask : SPOOF_EN + JPEG8
 //0F12 03C0	// #REG_0TC_CCFG_usJpegPacketSize
 //0F12 08FC	// #REG_0TC_CCFG_usJpegTotalPackets
+};
 
-
+//out from config2 - step 2
+static struct s5k4cdgx_request s5k4cdgx_init_reg_gas[] ={
 //================================================================================================
 //	Set GAS (Grid Anti-shading)
 //================================================================================================
@@ -1366,8 +1389,10 @@ S5K4CDGX_DATA(0x0001),	// #THSTAT_Mon_u16_CaptureFrameRequest
 S5K4CDGX_REG(0x078C),
 S5K4CDGX_DATA(0x347C),	// #TVAR_ash_pGAS : 7000_347C
 S5K4CDGX_DATA(0x7000),
+};
 
-
+//out from config2 - step 2
+static struct s5k4cdgx_request s5k4cdgx_init_reg_ccm[] ={
 //================================================================================================
 //	Set CCM
 //================================================================================================
@@ -1525,8 +1550,10 @@ S5K4CDGX_DATA(0x0200),
 // reInit Core  
 S5K4CDGX_REG(0x0532),
 S5K4CDGX_DATA(0x0001),	// #REG_TC_DBG_ReInitCmd
+};
 
-               
+//out from config2 - step 3
+static struct s5k4cdgx_request s5k4cdgx_init_reg_awb[] ={
 //================================================================================================
 //	Set AWB
 //================================================================================================
@@ -1575,7 +1602,7 @@ S5K4CDGX_DATA(0x0000),	// #awbb_IndoorGrZones_m_BGrid[39]
 S5K4CDGX_DATA(0x0005),	// #awbb_IndoorGrZones_m_GridStep
 S5K4CDGX_REG(0x0CCC),
 S5K4CDGX_DATA(0x00E0),	// #awbb_IndoorGrZones_m_Boffs
-               
+
 // LowBr       
 S5K4CDGX_REG(0x0D0C),
 S5K4CDGX_DATA(0x03D8),	// #awbb_LowBrGrZones_m_BGrid[0]
@@ -1605,7 +1632,7 @@ S5K4CDGX_DATA(0x0000),	// #awbb_LowBrGrZones_m_BGrid[23]
 S5K4CDGX_DATA(0x0006),	// #awbb_LowBrGrZones_m_GridStep
 S5K4CDGX_REG(0x0D44),
 S5K4CDGX_DATA(0x00B7),	// #awbb_LowBrGrZones_m_Boffs
-               
+
 // Outdoor     
 S5K4CDGX_REG(0x0CD0),
 S5K4CDGX_DATA(0x03E9),	// #awbb_OutdoorGrZones_m_BGrid[0]
@@ -1635,7 +1662,7 @@ S5K4CDGX_DATA(0x0000),	// #awbb_OutdoorGrZones_m_BGrid[23]
 S5K4CDGX_DATA(0x0006),	// #awbb_OutdoorGrZones_m_GridStep
 S5K4CDGX_REG(0x0D08),
 S5K4CDGX_DATA(0x00E6),	// #awbb_OutdoorGrZones_m_Boffs
-               
+
 // Low temperature
 S5K4CDGX_REG(0x0D48),
 S5K4CDGX_DATA(0x03BF),	// #awbb_CrclLowT_R_c
@@ -1646,20 +1673,19 @@ S5K4CDGX_DATA(0x5875),	// #awbb_CrclLowT_Rad_c
 
 S5K4CDGX_REG(0x202A),
 S5K4CDGX_DATA(0x0004),	// #Mon_awb_ByPassMode : LowTemp bypass
-               
-               
+
 // White locus 
 S5K4CDGX_REG(0x0D58),
 S5K4CDGX_DATA(0x0151),	// #awbb_IntcR
 S5K4CDGX_DATA(0x010D),	// #awbb_IntcB
-               
+
 // Gamut threshold
 S5K4CDGX_REG(0x0D78),
 S5K4CDGX_DATA(0x0187),	//#awbb_GamutWidthThr1
 S5K4CDGX_DATA(0x00CF),	//#awbb_GamutHeightThr1
 S5K4CDGX_DATA(0x000D),	//#awbb_GamutWidthThr2
 S5K4CDGX_DATA(0x000A),	//#awbb_GamutHeightThr2
-               
+
 // Set scene threshold               
 S5K4CDGX_REG(0x0D88),
 S5K4CDGX_DATA(0x05AA),	// #awbb_LowTempRB
@@ -1671,8 +1697,10 @@ S5K4CDGX_DATA(0x05dc), //9C4	////awbb_OutdoorDetectionZone_ZInfo_m_MaxNB
 
 S5K4CDGX_REG(0x0E6A),
 S5K4CDGX_DATA(0x0000),	// #awbb_rpl_InvalidOutdoor off
-               
-               
+};
+
+//out from config2 - step 4
+static struct s5k4cdgx_request s5k4cdgx_init_reg_ae[] ={
 //================================================================================================
 //	Set AE 
 //================================================================================================
@@ -1683,7 +1711,7 @@ S5K4CDGX_DATA(0x003C),	// #TVAR_ae_BrAve
 // AE State Mode
 S5K4CDGX_REG(0x0E8E),
 S5K4CDGX_DATA(0x000F),	// #Ae_StatMode
-               
+
 // AE Weight   
 S5K4CDGX_REG(0x0E96),
 S5K4CDGX_DATA(0x0101),	// #ae_WeightTbl_16_0_
@@ -1718,8 +1746,10 @@ S5K4CDGX_DATA(0x0101),	// #ae_WeightTbl_16_28
 S5K4CDGX_DATA(0x0101),	// #ae_WeightTbl_16_29
 S5K4CDGX_DATA(0x0101),	// #ae_WeightTbl_16_30
 S5K4CDGX_DATA(0x0101),	// #ae_WeightTbl_16_31
-               
-               
+};
+
+//out from config2 - step 5
+static struct s5k4cdgx_request s5k4cdgx_init_reg_gamma_lut[] ={
 //================================================================================================
 //	Set Gamma LUT
 //================================================================================================
@@ -1809,14 +1839,16 @@ S5K4CDGX_DATA(0x00F1),	// #SARR_IllumTypeF[3]
 S5K4CDGX_DATA(0x0100),	// #SARR_IllumTypeF[4]
 S5K4CDGX_DATA(0x0100),	// #SARR_IllumTypeF[5]
 S5K4CDGX_DATA(0x0100),	// #SARR_IllumTypeF[6]
+};
 
-
+//out from config2 - step 6
+static struct s5k4cdgx_request s5k4cdgx_init_reg_afit[] ={
 //==, 0x====),=========================================================================================
 //	 0xSet ),AFIT table
 //==, 0x====),=========================================================================================
 //	 0xpara),m_start	afit_uNoiseIndInDoor
 S5K4CDGX_REG(0x07A8),
-S5K4CDGX_DATA(0x000A),	// #afit_uNoiseIndInDoor[0]      //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+S5K4CDGX_DATA(0x000A),	// #afit_uNoiseIndInDoor[0]
 S5K4CDGX_DATA(0x0019),	// #afit_uNoiseIndInDoor[1]
 S5K4CDGX_DATA(0x007D),	// #afit_uNoiseIndInDoor[2]
 S5K4CDGX_DATA(0x01F4),	// #afit_uNoiseIndInDoor[3]
@@ -2240,11 +2272,14 @@ S5K4CDGX_DATA(0xBE7C),	// #afit_pConstBaseVals[2]
 S5K4CDGX_DATA(0x95BD),	// #afit_pConstBaseVals[3]
 S5K4CDGX_DATA(0x7C32),	// #afit_pConstBaseVals[4]
 S5K4CDGX_DATA(0x0003),	// #afit_pConstBaseVals[5]
-            
+
 //002A 0E62
 //0F12 000	// Global Rgain_offset
 //0F12 0020	// Global Bgain_offset
+};
 
+//Update changed registers in config2 seq
+static struct s5k4cdgx_request s5k4cdgx_init_reg_config2[] ={
 // Update Changed Registers
 S5K4CDGX_REG(0x0532),
 S5K4CDGX_DATA(0x0001),	// #REG_TC_DBG_ReInitCmd
@@ -2253,6 +2288,5 @@ S5K4CDGX_DATA(0x0001),	// #REG_TC_DBG_ReInitCmd
 S5K4CDGX_REG(0x0532),
 S5K4CDGX_DATA(0x0001),	// #REG_TC_DBG_ReInitCmd
 // ---------------------------------------------------------------------------- End of 4CDGX EVT1.0 initializationion
-
 };
 #endif
