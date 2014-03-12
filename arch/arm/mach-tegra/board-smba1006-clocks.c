@@ -275,7 +275,7 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	{ "pwm",		"clk_m",		12000000,	true},		/* tegra-pwm.0 tegra-pwm.1 tegra-pwm.2 tegra-pwm.3*/
 	{ "cdev1",		NULL,			0,		true},
 	{ "uartc",		"pll_p",		216000000,	false},    /* tegra_uart.2 uart.0 */
-	{ "uartd",		"clk_m",		12000000,	true},    /* tegra_uart.3 uart.3 */
+	{ "uartd",              "pll_p",                216000000,      false},    /* tegra_uart.3 uart.3 */
 	{ "csus",    "clk_m",          0,  false},    /* tegra_camera */
 	{ "isp",    "clk_m",    0,  false},    /* tegra_camera? */
 	{ "vi_sensor",    "pll_m",   20000000,  false},    /* tegra_camera */
