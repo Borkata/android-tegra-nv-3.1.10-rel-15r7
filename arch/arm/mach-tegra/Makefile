@@ -281,4 +281,6 @@ obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-sdhci.o
 obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-pm-camera.o
 obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-pm-gps.o
 obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-gps.o
+obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-pm-gsm.o
+obj-${CONFIG_MACH_SMBA1006}              += board-smba1006-gsm.o
 obj-${CONFIG_MACH_SMBA1006}              += bcb.o

@@ -219,8 +219,8 @@ static int __init smba_gsm_probe(struct platform_device *pdev)
 	gsm_data->regulator[1] = regulator[1];
 	
 	/* Init control pins */
-	gpio_request(SMBA1007_3G_DISABLE, "gsm_disable");
-	gpio_direction_output(SMBA1007_3G_DISABLE, 1);
+	gpio_request(SMBA1006_3G_DISABLE, "gsm_disable");
+	gpio_direction_output(SMBA1006_3G_DISABLE, 1);
 //	smba_3g_gps_init();
 
 	/* register rfkill interface */

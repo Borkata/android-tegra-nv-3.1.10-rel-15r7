@@ -117,5 +117,6 @@ extern int smba_gps_pm_register_devices(void);
 extern void smba_gps_mag_init(void);
 extern void smba_gps_mag_poweron(void);
 extern void smba_gps_mag_poweroff(void);
+extern int smba_gsm_pm_register_devices(void);
 
 #endif
