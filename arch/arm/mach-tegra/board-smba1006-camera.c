@@ -71,7 +71,7 @@ struct s5k4cdgx_platform_data smba_s5k4cdgx_data = {
 	},
 	.nlanes = 1,
 	.horiz_flip = false,
-	.vert_flip = false,
+	.vert_flip = true,
 };
 
 static struct i2c_board_info smba_i2c3_board_info_camera = {
