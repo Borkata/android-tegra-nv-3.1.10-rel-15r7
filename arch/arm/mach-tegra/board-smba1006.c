@@ -218,7 +218,7 @@ static void __init tegra_smba_init(void)
 	//smba_gps_pm_register_devices();
 
 	/* Register gsm powermanagement devices */
-	smba_gsm_pm_register_devices();
+	//smba_gsm_pm_register_devices();
 
 	/* Register Camera powermanagement devices */
 	smba_camera_register_devices();
@@ -233,8 +233,8 @@ static void __init tegra_smba_init(void)
 	smba_setup_bluesleep();
 
 	/* GPS Setup */
-	//smba_gps_mag_init();
-	//smba_gps_mag_poweron();
+	smba_gps_mag_init();
+	smba_gps_mag_poweron();
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();
