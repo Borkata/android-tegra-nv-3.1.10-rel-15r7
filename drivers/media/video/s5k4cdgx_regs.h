@@ -759,6 +759,13 @@ S5K4CDGX_DATA(0x005A),	// #Capture_BRC : Super Fine (90d)
 //0F12 0050	// #REG_0TC_CCFG_OIFMask : SPOOF_EN + JPEG8
 //0F12 03C0	// #REG_0TC_CCFG_usJpegPacketSize
 //0F12 08FC	// #REG_0TC_CCFG_usJpegTotalPackets
+// c,ha0xnge ),the R or B gain  by yourself
+// e,xp0x: if), yellownish , add some b gain-> Change 055c to 057c
+S5K4CDGX_PAGE(0x7000),
+S5K4CDGX_REG(0x0e72),
+S5K4CDGX_DATA(0x053c),    //r
+S5K4CDGX_DATA(0x0400),    //g this can not change
+S5K4CDGX_DATA(0x055c),    //b
 };
 
 //out from config2 - step 2 //this one is completely deferent from orig. Changed!
