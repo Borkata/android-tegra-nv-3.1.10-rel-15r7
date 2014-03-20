@@ -234,7 +234,7 @@ static void __init tegra_smba_init(void)
 
 	/* GPS Setup */
 	smba_gps_mag_init();
-	//smba_gps_mag_poweron();
+	smba_gps_mag_poweron();
 
 	/* Release the tegra bootloader framebuffer */
 	tegra_release_bootloader_fb();
