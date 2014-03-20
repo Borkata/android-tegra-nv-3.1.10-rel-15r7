@@ -283,8 +283,9 @@ static const struct s5k4cdgx_pixfmt s5k4cdgx_formats[] = {
 };
 
 static const struct v4l2_frmsize_discrete s5k4cdgx_frame_sizes[] = {
-	{1280, 1024},
-	{1280, 720},
+//	{2048, 1536},
+//	{1280, 1024},
+//	{1280, 720},
 	{800, 600}, /* SVGA */
 	{640, 480}, /* VGA */
 	{352, 288}, /* CIF */
@@ -293,15 +294,6 @@ static const struct v4l2_frmsize_discrete s5k4cdgx_frame_sizes[] = {
 };
 
 static const struct s5k4cdgx_interval s5k4cdgx_intervals[] = {
-	{ 1000, 10, {10000, 1000000}, {1280, 1024} }, /* 10 fps */
-	{ 666, 15, {15000, 1000000}, {1280, 1024} }, /* 15 fps */
-	{ 500, 20, {20000, 1000000}, {1280, 720} },  /* 20 fps, HD720 */
-	{ 500, 20, {20000, 1000000}, {800, 600} },
-	{ 400, 25, {25000, 1000000}, {640, 480} },   /* 25 fps */
-	{ 333, 30, {33300, 1000000}, {640, 480} },   /* 30 fps, VGA */
-	{ 333, 30, {33300, 1000000}, {352, 288} },   /* CIF */
-	{ 333, 30, {33300, 1000000}, {320, 240} },   /* QVGA */
-	{ 333, 30, {33300, 1000000}, {176, 144} },   /* QCIF */
 	{ 1401, 7, {140100, 1000000}, {2048, 1536} }, /*  7.138 fps */
 	{ 666, 15, {66600, 1000000}, {2048, 1536} }, /* 15.015 fps */
 	{ 500, 20, {20000, 1000000}, {1280, 720} },  /* 20 fps, HD720 */
@@ -960,11 +952,11 @@ static int s5k4cdgx_initialize_isp(struct v4l2_subdev *sd)
 
 	msleep(20);
 
-	ret = s5k4cdgx_configure_pixel_clocks(s5k4cdgx);
-	if (ret) {
-        v4l2_err(sd, "[S5K4CDGX] %s function err in configure_pixel_clocks\n", __func__);
-		return ret;
-	}
+	//ret = s5k4cdgx_configure_pixel_clocks(s5k4cdgx);
+	//if (ret) {
+        //v4l2_err(sd, "[S5K4CDGX] %s function err in configure_pixel_clocks\n", __func__);
+	//	return ret;
+	//}
 	
 	return 0;
 }
