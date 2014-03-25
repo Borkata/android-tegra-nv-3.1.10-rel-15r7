@@ -215,7 +215,7 @@ static void __init tegra_smba_init(void)
 	smba_sensors_register_devices();
 	
 	/* Register GPS power management */
-	//smba_gps_pm_register_devices();
+	smba_gps_pm_register_devices();
 
 	/* Register gsm powermanagement devices */
 	//smba_gsm_pm_register_devices();

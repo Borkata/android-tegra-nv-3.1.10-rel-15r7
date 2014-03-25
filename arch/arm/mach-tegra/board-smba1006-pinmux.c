@@ -177,7 +177,7 @@ static __initdata struct tegra_pingroup_config smba_pinmux[] = {
 };
 
 static struct tegra_gpio_table gpio_table[] = {
-//        { .gpio = SMBA1006_GPSMAG_DISABLE,      .enable = true  },
+/*        { .gpio = SMBA1006_GPSMAG_DISABLE,      .enable = true  },*/
 	{ .gpio = SMBA1006_SDHC_CD,			.enable = true	},
 	{ .gpio = SMBA1006_SDHC_WP,			.enable = true	},
 	{ .gpio = SMBA1006_SDHC_POWER,		.enable = true	},
