@@ -269,6 +269,8 @@ static __initdata struct tegra_clk_init_table smba_clk_init_table[] = {
 	{ "blink",	"clk_32k",		 32768,		false},
 	{ "pll_p_out4",	"pll_p",  24000000,		true },
 	{ "pwm",	"clk_32k",		 32768,		false},
+	{ "uartc",		"pll_p",	 216000000, 	false},    /* tegra_uart.2 uart.0 */
+	{ "uartd",              "pll_p",         216000000,     false},    /* tegra_uart.3 uart.3 */
 	{ "i2s1",	"pll_a_out0",		 0,		false},
 	{ "i2s2",	"pll_a_out0",		 0,		false},
 	{ "spdif_out",	"pll_a_out0",	 0,		false},	
