@@ -672,11 +672,11 @@ S5K4CDGX_DATA(0x029a),  //#REG_0TC_PCFG_usMinFrTimeMsecMult10
 //renn add start for test
 S5K4CDGX_PAGE(0x7000),
 S5K4CDGX_REG(0x0310), 
-S5K4CDGX_DATA(0x0001),//S5K4CDGX_DATA(0x0000),   //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
-S5K4CDGX_DATA(0x0001),//S5K4CDGX_DATA(0x0000), //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
+S5K4CDGX_DATA(0x0003),//S5K4CDGX_DATA(0x0000),   //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
+S5K4CDGX_DATA(0x0003),//S5K4CDGX_DATA(0x0000), //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
 S5K4CDGX_REG(0x0340), 
-S5K4CDGX_DATA(0x0001),//S5K4CDGX_DATA(0x0000),  //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
-S5K4CDGX_DATA(0x0001),//S5K4CDGX_DATA(0x0000), //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
+S5K4CDGX_DATA(0x0003),//S5K4CDGX_DATA(0x0000),  //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
+S5K4CDGX_DATA(0x0003),//S5K4CDGX_DATA(0x0000), //normal  0x0000, mirror 0x0001. //modified by zj.for hmirror.
 };
 
 //out from config1 - step 8 //updated with orig regs
