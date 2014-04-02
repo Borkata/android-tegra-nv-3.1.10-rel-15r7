@@ -230,7 +230,7 @@ static long ecs_ctrl_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 			input_report_abs(ecs_data_device, ABS_Y, ypr[1]);
 			input_report_abs(ecs_data_device, ABS_Z, ypr[2]);
 			input_report_abs(ecs_data_device, ABS_WHEEL, ypr[3]);
-			//printk(KERN_INFO"acc x:%d  y:%d z:%d\n", ypr[0], ypr[1], ypr[2]);
+			printk(KERN_INFO"acc x:%d  y:%d z:%d\n", ypr[0], ypr[1], ypr[2]);
 		}
 
 		/* Report magnetic sensor information */
@@ -239,7 +239,7 @@ static long ecs_ctrl_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 			input_report_abs(ecs_data_device, ABS_HAT0Y, ypr[5]);
 			input_report_abs(ecs_data_device, ABS_BRAKE, ypr[6]);
 			input_report_abs(ecs_data_device, ABS_GAS, ypr[7]);
-			//printk(KERN_INFO"mag x:%d  y:%d z:%d\n", ypr[4], ypr[5], ypr[6]);
+			printk(KERN_INFO"mag x:%d  y:%d z:%d\n", ypr[4], ypr[5], ypr[6]);
 		}
 
 		/* Report orientation information */
@@ -248,7 +248,7 @@ static long ecs_ctrl_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 			input_report_abs(ecs_data_device, ABS_RY, ypr[9]);
 			input_report_abs(ecs_data_device, ABS_RZ, ypr[10]);
 			input_report_abs(ecs_data_device, ABS_RUDDER, ypr[11]);
-			//printk(KERN_INFO"ori x:%d  y:%d z:%d\n", ypr[8], ypr[9], ypr[10]);
+			printk(KERN_INFO"ori x:%d  y:%d z:%d\n", ypr[8], ypr[9], ypr[10]);
 		}
 
 		input_sync(ecs_data_device);
