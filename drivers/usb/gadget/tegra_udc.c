@@ -2608,9 +2608,9 @@ static int __init tegra_udc_probe(struct platform_device *pdev)
 		goto err_iounmap;
 	}
 
-	//err = request_irq(udc->irq, tegra_udc_irq, IRQF_SHARED | IRQF_TRIGGER_RISING,  //USB fix, remove if USB still works
-	err = request_irq(udc->irq, tegra_udc_irq,
-				IRQF_SHARED | IRQF_TRIGGER_HIGH,
+	err = request_irq(udc->irq, tegra_udc_irq, IRQF_SHARED | IRQF_TRIGGER_RISING,  //USB fix, remove if USB still works
+	//err = request_irq(udc->irq, tegra_udc_irq,
+	//			IRQF_SHARED | IRQF_TRIGGER_HIGH,
 				driver_name, udc);
 	if (err) {
 		ERR("cannot request irq %d err %d\n", udc->irq, err);

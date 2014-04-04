@@ -463,9 +463,9 @@ static int tegra_otg_probe(struct platform_device *pdev)
 	tegra->irq = res->start;
 	err = request_threaded_irq(tegra->irq, tegra_otg_irq,
 				   NULL,
-				   //IRQF_SHARED | IRQF_TRIGGER_RISING, "tegra-otg", tegra); //old USB fix. remove if TRIGGER_HIGH works
-				   IRQF_SHARED | IRQF_TRIGGER_HIGH,
-				   "tegra-otg", tegra);
+				   IRQF_SHARED | IRQF_TRIGGER_RISING, "tegra-otg", tegra); //old USB fix. remove if TRIGGER_HIGH works
+				   //IRQF_SHARED | IRQF_TRIGGER_HIGH,
+				   //"tegra-otg", tegra);
 	if (err) {
 		dev_err(&pdev->dev, "Failed to register IRQ\n");
 		goto err_irq;
