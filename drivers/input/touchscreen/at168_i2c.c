@@ -98,9 +98,9 @@ static void at168_work(struct work_struct *work)
 				 event.data.coord[i][0]);
 		input_report_abs(touch->input_dev, ABS_MT_POSITION_Y,
 				 event.data.coord[i][1]);
-		input_report_abs(touch->input_dev, ABS_MT_TRACKING_ID, i);
 		input_report_abs(touch->input_dev, ABS_MT_TOUCH_MAJOR, 10);
 		input_report_abs(touch->input_dev, ABS_MT_WIDTH_MAJOR, 20);
+		input_report_abs(touch->input_dev, ABS_MT_TRACKING_ID, i);
 		input_mt_sync(touch->input_dev);
 	}
 	if(event.data.fingers == 0)
