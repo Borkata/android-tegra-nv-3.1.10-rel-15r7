@@ -93,14 +93,18 @@ static int mmc31xx_i2c_rx_data(char *buf, int len)
 	};
 
 	for (i = 0; i < MMC31XX_RETRY_COUNT; i++) {
-		if (i2c_transfer(this_client->adapter, msgs, 2) >= 0) {
+		int ret;
+		ret = i2c_transfer(this_client->adapter, msgs, 2);
+		pr_err("%s i2c_transfer ret: %d", __FUNCTION__, ret);
+		if (ret >= 0) {
 			break;
 		}
-		mdelay(10);
+		msleep(1000);
 	}
 
 	if (i >= MMC31XX_RETRY_COUNT) {
 		pr_err("%s: retry over %d\n", __FUNCTION__, MMC31XX_RETRY_COUNT);
+		msleep(10000);
 		return -EIO;
 	}
 
@@ -120,14 +124,18 @@ static int mmc31xx_i2c_tx_data(char *buf, int len)
 	};
 	
 	for (i = 0; i < MMC31XX_RETRY_COUNT; i++) {
-		if (i2c_transfer(this_client->adapter, msg, 1) >= 0) {
+		int ret;
+		ret = i2c_transfer(this_client->adapter, msg, 1);
+		pr_err("%s i2c_transfer ret: %d", __FUNCTION__, ret);
+		if (ret >= 0) {
 			break;
 		}
-		mdelay(10);
+		msleep(1000);
 	}
 
 	if (i >= MMC31XX_RETRY_COUNT) {
 		pr_err("%s: retry over %d\n", __FUNCTION__, MMC31XX_RETRY_COUNT);
+		msleep(10000);
 		return -EIO;
 	}
 	
