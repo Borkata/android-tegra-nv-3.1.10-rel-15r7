@@ -1743,16 +1743,21 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	memcpy(&policy->cpuinfo, &data->cpuinfo,
 				sizeof(struct cpufreq_cpuinfo));
 
+	/* This check is broken and sometimes fails
 	if (policy->min > data->user_policy.max ||
 	    policy->max < data->user_policy.min) {
+	    	pr_debug("beyond limits %u-%u(%u-%u)", policy->min, policy->max, data->user_policy.min, data->user_policy.max);
 		ret = -EINVAL;
 		goto error_out;
 	}
+	*/
 
 	/* verify the cpu speed can be set within this limit */
 	ret = cpufreq_driver->verify(policy);
-	if (ret)
+	if (ret) {
+		pr_debug("verify policy failed");
 		goto error_out;
+	}
 
 	/* adjust if necessary - all reasons */
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
@@ -1765,8 +1770,10 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	/* verify the cpu speed can be set within this limit,
 	   which might be different to the first one */
 	ret = cpufreq_driver->verify(policy);
-	if (ret)
+	if (ret) {
+		pr_debug("verify policy failed 2");
 		goto error_out;
+	}
 
 	/* notification of the new policy */
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
@@ -1886,13 +1893,19 @@ int cpufreq_set_gov(char *target_gov, unsigned int cpu)
 	struct cpufreq_policy new_policy;
 	struct cpufreq_policy *cur_policy;
 
+	pr_info("%s: target_gov: %s", __func__, target_gov);
+
 	if (target_gov == NULL)
 		return -EINVAL;
 
+	pr_info("%s: cpu: %d", __func__, cpu);
+	
 	/* Get current governer */
 	cur_policy = cpufreq_cpu_get(cpu);
 	if (!cur_policy)
 		return -EINVAL;
+
+	pr_info("%s: cur_gov: %s", __func__, cur_policy->governor->name);
 
 	new_policy = *cur_policy;
 	if (!strncmp(cur_policy->governor->name, target_gov,
@@ -1903,16 +1916,19 @@ int cpufreq_set_gov(char *target_gov, unsigned int cpu)
 	} else {
 		if (cpufreq_parse_governor(target_gov, &new_policy.policy,
 				&new_policy.governor)) {
+			pr_info("%s: fail cpufreq_parse_governor", __func__);
 			ret = -EINVAL;
 			goto err_out;
 		}
 
 		if (lock_policy_rwsem_write(cur_policy->cpu) < 0) {
+			pr_info("%s: fail lock_policy_rwsem_write", __func__);
 			ret = -EINVAL;
 			goto err_out;
 		}
 
 		ret = __cpufreq_set_policy(cur_policy, &new_policy);
+		pr_info("%s: __cpufreq_set_policy: %d", __func__, ret);
 
 		cur_policy->user_policy.policy = cur_policy->policy;
 		cur_policy->user_policy.governor = cur_policy->governor;
