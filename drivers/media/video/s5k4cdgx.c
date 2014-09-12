@@ -35,7 +35,7 @@
 #include "s5k4cdgx_regs.h"
 
 
-static int debug = 1;
+static int debug = 2;
 module_param(debug, int, 0644);
 
 #define DRIVER_NAME			"S5K4CDGX"
@@ -85,27 +85,29 @@ module_param(debug, int, 0644);
 #define  PCLK_FREQ_MIN			(24000000 / 4000)
 #define  PCLK_FREQ_MAX			(48000000 / 4000)
 #define REG_I_INIT_PARAMS_UPDATED	0x70000272
-#define REG_I_ERROR_INFO		0x70000274
+#define REG_I_ERROR_INFO		0x70000274//?
+#define REG_I_DBG_REINITCMD		0x70000532
 
 /* General purpose parameters */
-#define REG_USER_BRIGHTNESS		0x70000276
-#define REG_USER_CONTRAST		0x70000278
-#define REG_USER_SATURATION		0x7000027a
-#define REG_USER_SHARPBLUR		0x7000027c
+#define REG_USER_BRIGHTNESS		0x70000276//?
+#define REG_USER_CONTRAST		0x70000278//?
+#define REG_USER_SATURATION		0x7000027a//?
+#define REG_USER_SHARPBLUR		0x7000027c//?
 
 #define REG_G_SPEC_EFFECTS		0x70000286
 #define REG_G_ENABLE_PREV		0x70000288
 #define REG_G_ENABLE_PREV_CHG		0x7000028a
 #define REG_G_NEW_CFG_SYNC		0x70000298
-#define REG_G_PREVZOOM_IN_WIDTH		0x7000029a
-#define REG_G_PREVZOOM_IN_HEIGHT	0x7000029c
-#define REG_G_PREVZOOM_IN_XOFFS		0x7000029e
-#define REG_G_PREVZOOM_IN_YOFFS		0x700002a0
-#define REG_G_INPUTS_CHANGE_REQ		0x700002aa
+#define REG_G_PREVZOOM_IN_WIDTH		0x7000029a//?
+#define REG_G_PREVZOOM_IN_HEIGHT	0x7000029c//?
+#define REG_G_PREVZOOM_IN_XOFFS		0x7000029e//?
+#define REG_G_PREVZOOM_IN_YOFFS		0x700002a0//?
+#define REG_G_INPUTS_CHANGE_REQ		0x700002aa//?
 #define REG_G_ACTIVE_PREV_CFG		0x700002ac
+#define REG_G_ACTIVE_CAP_CFG            0x700002b4 //not used yet
 #define REG_G_PREV_CFG_CHG		0x700002ae
 #define REG_G_PREV_OPEN_AFTER_CH	0x700002b0
-#define REG_G_PREV_CFG_ERROR		0x700002b2
+#define REG_G_PREV_CFG_ERROR		0x700002b2//?
 
 /* Preview control section. n = 0...4. */
 #define PREG(n, x)			((n) * 0x26 + x) //??
@@ -132,32 +134,28 @@ module_param(debug, int, 0644);
 #define  S5K4CDGX_MAX_FR_TIME		650000 /* us */
 #define  S5K4CDGX_MAX_HIGHRES_FR_TIME	666    /* x100 us */
 /* The below 5 registers are for "device correction" values */
-#define REG_P_COLORTEMP(n)		PREG(n, 0x7000030c)
+#define REG_P_COLORTEMP(n)		PREG(n, 0x7000030c) //?
 #define REG_P_PREV_MIRROR(n)		PREG(n, 0x70000310)
+#define REG_P_CAP_MIRROR(n)		PREG(n, 0x70000312) //not used yet
 
 /* Extended image property controls */
 /* Exposure time in 10 us units */
-#define REG_SF_USR_EXPOSURE_L		0x70000492
-#define REG_SF_USR_EXPOSURE_H		0x70000494
-#define REG_SF_USR_EXPOSURE_CHG		0x70000496
-#define REG_SF_USR_TOT_GAIN		0x70000498
-#define REG_SF_USR_TOT_GAIN_CHG		0x7000049a
-#define REG_SF_RGAIN			0x700004a0
-#define REG_SF_RGAIN_CHG		0x700004a2
-#define REG_SF_GGAIN			0x700004a4
-#define REG_SF_GGAIN_CHG		0x700004a6
-#define REG_SF_BGAIN			0x700004a8
-#define REG_SF_BGAIN_CHG		0x700004aa
-#define REG_SF_FLICKER_QUANT		0x700004ba
-#define REG_SF_FLICKER_QUANT_CHG	0x700004bc
-
-/* Output interface (parallel/MIPI) setup */
-#define REG_OIF_EN_MIPI_LANES		0x700003fa
-#define REG_OIF_EN_PACKETS		0x700003fc
-#define REG_OIF_CFG_CHG			0x700003fe
+#define REG_SF_USR_EXPOSURE_L		0x700004f0//?
+#define REG_SF_USR_EXPOSURE_H		0x700004f2//?
+#define REG_SF_USR_EXPOSURE_CHG		0x700004f4//?
+#define REG_SF_USR_TOT_GAIN		0x700004f6//?
+#define REG_SF_USR_TOT_GAIN_CHG		0x700004f8//?
+#define REG_SF_RGAIN			0x700004fa
+#define REG_SF_RGAIN_CHG		0x700004fc
+#define REG_SF_GGAIN			0x700004fe
+#define REG_SF_GGAIN_CHG		0x70000500
+#define REG_SF_BGAIN			0x70000502
+#define REG_SF_BGAIN_CHG		0x70000504
+#define REG_SF_FLICKER_QUANT		0x70000514
+#define REG_SF_FLICKER_QUANT_CHG	0x70000516
 
 /* Auto-algorithms enable mask */
-#define REG_DBG_AUTOALG_EN		0x70000400
+#define REG_DBG_AUTOALG_EN		0x7000052e
 #define  AALG_ALL_EN_MASK		(1 << 0)
 #define  AALG_AE_EN_MASK		(1 << 1)
 #define  AALG_DIVLEI_EN_MASK		(1 << 2)
@@ -168,7 +166,7 @@ module_param(debug, int, 0644);
 
 /* Firmware revision information */
 #define S5K4CDGX_CHIP_ID		0x4cd
-#define REG_CHIP_ID				0x00000040
+#define REG_CHIP_ID			0x00000040
 #define REG_MODEL_ID			0xD000100C
 #define REG_GPIO_MODE_SEL		0xD000108E
 #define REG_GPIO_FUNC_SEL		0xD0001090
@@ -283,9 +281,9 @@ static const struct s5k4cdgx_pixfmt s5k4cdgx_formats[] = {
 };
 
 static const struct v4l2_frmsize_discrete s5k4cdgx_frame_sizes[] = {
-//	{2048, 1536},
-//	{1280, 1024},
-//	{1280, 720},
+	{2048, 1536},
+	{1280, 1024},
+	{1280, 720},
 	{800, 600}, /* SVGA */
 	{640, 480}, /* VGA */
 	{352, 288}, /* CIF */
@@ -294,16 +292,15 @@ static const struct v4l2_frmsize_discrete s5k4cdgx_frame_sizes[] = {
 };
 
 static const struct s5k4cdgx_interval s5k4cdgx_intervals[] = {
-	{ 1401, 7, {140100, 1000000}, {2048, 1536} }, /*  7.138 fps */
-	{ 666, 15, {66600, 1000000}, {2048, 1536} }, /* 15.015 fps */
+	{ 1401, 7, {7138, 1000000}, {2048, 1536} }, /*  7.138 fps */
+	{ 666, 15, {15015, 1000000}, {2048, 1536} }, /* 15.015 fps */
 	{ 500, 20, {20000, 1000000}, {1280, 720} },  /* 20 fps, HD720 */
 	{ 500, 20, {20000, 1000000}, {800, 600} },
-    { 400, 25, {25000, 1000000}, {640, 480} },   /* 25 fps */
+	{ 400, 25, {25000, 1000000}, {640, 480} },   /* 25 fps */
 	{ 333, 30, {33300, 1000000}, {640, 480} }, /* 29.940 fps */
-    { 333, 30, {33300, 1000000}, {352, 288} },   /* CIF */
-    { 333, 30, {33300, 1000000}, {320, 240} },   /* QVGA */
-    { 333, 30, {33300, 1000000}, {176, 144} },   /* QCIF */
-
+	{ 333, 30, {33300, 1000000}, {352, 288} },   /* CIF */
+	{ 333, 30, {33300, 1000000}, {320, 240} },   /* QVGA */
+	{ 333, 30, {33300, 1000000}, {176, 144} },   /* QCIF */
 };
 
 #define S5K4CDGX_INTERVAL_DEF_INDEX 1
@@ -357,7 +354,7 @@ static int s5k4cdgx_i2c_read(struct i2c_client *client, u16 addr, u16 *val)
 	ret = i2c_transfer(client->adapter, msg, 2);
 	*val = be16_to_cpu(*((u16 *)rbuf));
 
-	v4l2_dbg(3, debug, client, "i2c_read: 0x%04X : 0x%04x\n", addr, *val);
+	v4l2_dbg(3, debug, client, "i2c_read: 0x%04X : 0x%04x, i2ctrans_ret: %d\n", addr, *val, ret);
 
 	return ret == 2 ? 0 : ret;
 }
@@ -450,19 +447,18 @@ static int s5k4cdgx_read(struct i2c_client *client, u32 addr, u16 *val)
 		ret = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRL, low);
 	if (!ret)
 		ret = s5k4cdgx_i2c_read(client, REG_CMDBUF0_ADDR, val);
-	if (!ret)
+	if (ret)
 		dev_err(&client->dev, "Failed to execute read command 0x%x\n",val);
 		
 	return ret;
 }
 
-/* Configure the AHB high address bytes for GTG registers access */
-static int s5k4cdgx_set_ahb_address(struct i2c_client *client)
+static int s5k4cdgx_set_arm_go(struct i2c_client *client)
 {
-	int ret = s5k4cdgx_i2c_write(client, AHB_MSB_ADDR_PTR, GEN_REG_OFFSH);
-	if (ret < 0)
-		return ret;
-	
+        int ret = s5k4cdgx_i2c_write(client, AHB_MSB_ADDR_PTR, GEN_REG_OFFSH);
+        if (ret < 0)
+                return ret;
+
     /*
      * sw_reset is activated to put device into idle status
      */
@@ -476,6 +472,19 @@ static int s5k4cdgx_set_ahb_address(struct i2c_client *client)
     /* Halt ARM CPU */
     return s5k4cdgx_i2c_write(client, 0x0014, 0x0001);
 
+}
+
+/* Configure the AHB high address bytes for GTG registers access */
+static int s5k4cdgx_set_ahb_address(struct i2c_client *client)
+{
+	int ret = s5k4cdgx_i2c_write(client, AHB_MSB_ADDR_PTR, GEN_REG_OFFSH);
+	if (ret < 0)
+		return ret;
+	
+	ret = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRH, HOST_SWIF_OFFSH);
+	if (ret)
+		return ret;
+	return s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRH, HOST_SWIF_OFFSH);
 }
 
 /**
@@ -524,6 +533,8 @@ static int s5k4cdgx_configure_pixel_clocks(struct s5k4cdgx *s5k4cdgx)
                                    s5k4cdgx->pclk_fmax);*/
 	if (!ret)
 		ret = s5k4cdgx_write(c, REG_I_INIT_PARAMS_UPDATED, 1);
+
+	v4l2_info(&s5k4cdgx->sd, "Call read reg from s5k4cdgx_configure_pixel_clocks");
 	if (!ret)
 		ret = s5k4cdgx_read(c, REG_I_ERROR_INFO, &status);
 
@@ -554,6 +565,7 @@ static int s5k4cdgx_set_awb(struct s5k4cdgx *s5k4cdgx, int awb)
 	struct s5k4cdgx_ctrls *ctrls = &s5k4cdgx->ctrls;
 	u16 reg;
 
+	v4l2_info(&s5k4cdgx->sd, "Call read reg from set_awb");
 	int ret = s5k4cdgx_read(c, REG_DBG_AUTOALG_EN, &reg);
 
 	if (!ret && !awb) {
@@ -609,6 +621,7 @@ static int s5k4cdgx_set_auto_exposure(struct s5k4cdgx *s5k4cdgx, int value)
 	unsigned int exp_time = s5k4cdgx->ctrls.exposure->val;
 	u16 auto_alg;
 
+	v4l2_info(&s5k4cdgx->sd, "Call read reg from set_auto_exposure");
 	int ret = s5k4cdgx_read(c, REG_DBG_AUTOALG_EN, &auto_alg);
 	if (ret)
 		return ret;
@@ -637,9 +650,12 @@ static int s5k4cdgx_set_anti_flicker(struct s5k4cdgx *s5k4cdgx, int value)
 	u16 auto_alg;
 	int ret;
 
+	v4l2_info(&s5k4cdgx->sd, "Call read reg from set_anti_flicker");
 	ret = s5k4cdgx_read(client, REG_DBG_AUTOALG_EN, &auto_alg);
-	if (ret)
-		return ret;
+	if (ret) {
+		v4l2_err(&s5k4cdgx->sd, "[S5K4CDGX] cannot read REG_DBG_AUTOALG_EN");
+		//return ret;
+	}
 
 	if (value == V4L2_CID_POWER_LINE_FREQUENCY_AUTO) {
 		auto_alg |= AALG_FLICKER_EN_MASK;
@@ -681,8 +697,17 @@ static int s5k4cdgx_set_colorfx(struct s5k4cdgx *s5k4cdgx, int val)
 
 static int s5k4cdgx_preview_config_status(struct i2c_client *client)
 {
+	int ret;
 	u16 error = 0;
-	int ret = s5k4cdgx_read(client, REG_G_PREV_CFG_ERROR, &error);
+
+	ret = s5k4cdgx_write(client, REG_I_DBG_REINITCMD, 1);
+	if (!ret)
+	    ret = s5k4cdgx_write(client, REG_I_DBG_REINITCMD, 1);
+	if (!ret)
+	    ret = s5k4cdgx_write(client, REG_I_DBG_REINITCMD, 1);
+
+	v4l2_info(client, "Call read reg from preview_config_status");
+	ret = s5k4cdgx_read(client, REG_G_PREV_CFG_ERROR, &error);
 
 	v4l2_dbg(1, debug, client, "preview config status error: 0x%x (%d)\n", error, ret);
 	return ret ? ret : (error ? -EINVAL : 0);
@@ -715,6 +740,9 @@ static int s5k4cdgx_set_output_framefmt(struct s5k4cdgx *s5k4cdgx,
 	if (!ret)
 		ret = s5k4cdgx_write(client, REG_P_FMT(preset->index),
 				   s5k4cdgx_formats[fmt_index].reg_p_fmt);
+        if (!ret)
+                ret = s5k4cdgx_write(client, REG_I_INIT_PARAMS_UPDATED, 1);
+
 	return ret;
 }
 
@@ -756,6 +784,7 @@ static int s5k4cdgx_new_config_sync(struct i2c_client *client, int timeout,
 		return ret;
 
 	while (ret >= 0 && time_is_after_jiffies(end)) {
+		v4l2_info(client, "Call read reg from new_config_sync");
 		ret = s5k4cdgx_read(client, REG_G_NEW_CFG_SYNC, &reg);
 		if (!reg)
 			return 0;
@@ -786,7 +815,7 @@ static int s5k4cdgx_set_prev_config(struct s5k4cdgx *s5k4cdgx,
 	ret = s5k4cdgx_set_output_framefmt(s5k4cdgx, preset);
 	if (!ret)
         ret = s5k4cdgx_write(client, REG_P_PVI_MASK(idx),
-					0x52);
+					0x42);
 	if (!ret)
 		ret = s5k4cdgx_write(client, REG_P_MAX_OUT_RATE(idx),
 				   s5k4cdgx->pclk_fmax);
@@ -836,6 +865,10 @@ static int s5k4cdgx_initialize_isp(struct v4l2_subdev *sd)
 
 	s5k4cdgx->apply_crop = 1;
 	s5k4cdgx->apply_cfg = 1;
+
+	ret = s5k4cdgx_set_arm_go(client);
+	if (ret)
+		return ret;
 
 	ret = s5k4cdgx_set_ahb_address(client);
 	if (ret)
@@ -891,8 +924,8 @@ static int s5k4cdgx_initialize_isp(struct v4l2_subdev *sd)
 		return ret;
 	}	
 	
-    ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_config1, ARRAY_SIZE(s5k4cdgx_init_reg_config1));
-    if (ret) {
+	ret = s5k4cdgx_write_regs(sd, s5k4cdgx_init_reg_config1, ARRAY_SIZE(s5k4cdgx_init_reg_config1));
+	if (ret) {
 		v4l2_err(sd, "[S5K4CDGX] %s function err in writing init reg 1\n", __func__);
 		return ret;
 	}
@@ -1713,21 +1746,6 @@ int s5k4cdgx_check_fw_revision(struct s5k4cdgx *s5k4cdgx)
 	u16 chipid = 0, modelid = 0;
 	int rc;
 
-	/*rc = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRH, 0x0000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDRD_ADDRH rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRL, 0x0040);
-	if (rc < 0) {
-		v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDRD_ADDRL rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_read(client, REG_CMDBUF0_ADDR, &chipid);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_read_w chipid read failed!!! rc=%d\n", rc);
-	}*/
-	
 	rc = s5k4cdgx_read(client, REG_CHIP_ID, &chipid);
 	if (rc < 0) {
 			v4l2_info(sd, "s5k4cdgx_read chipid read failed!!! rc=%d\n", rc);
@@ -1735,25 +1753,6 @@ int s5k4cdgx_check_fw_revision(struct s5k4cdgx *s5k4cdgx)
 	
 	v4l2_info(sd, "chipid = 0x%x\n", chipid);
 	
-	/*rc = s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRH, 0xD000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDWR_ADDRH rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRL, 0x108E);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDWR_ADDRL rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDBUF0_ADDR, 0x0033);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDBUF0_ADDR 0x0033 rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDBUF0_ADDR, 0x0066);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDBUF0_ADDR 0x0066 rc=%d\n", rc);
-	}*/
 	rc = s5k4cdgx_write(client, REG_GPIO_MODE_SEL, 0x0033);
 	if (rc < 0) {
 			v4l2_info(sd, "s5k4cdgx_write REG_GPIO_MODE_SEL rc=%d\n", rc);
@@ -1766,21 +1765,6 @@ int s5k4cdgx_check_fw_revision(struct s5k4cdgx *s5k4cdgx)
 	
 	mdelay(2);
 	
-	/*rc = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRH, 0xD000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDRD_ADDRH 0xD000 rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDRD_ADDRL, 0x100C);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDRD_ADDRL 0x100C rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_read(client, REG_CMDBUF0_ADDR, &modelid);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_read_w model_id read failed!!! rc=%d\n", rc);
-	}*/
-	
 	rc = s5k4cdgx_read(client, REG_MODEL_ID, &modelid);
 	if (rc < 0) {
 			v4l2_info(sd, "s5k4cdgx_read model_id read failed!!! rc=%d\n", rc);
@@ -1788,26 +1772,6 @@ int s5k4cdgx_check_fw_revision(struct s5k4cdgx *s5k4cdgx)
 	
 	v4l2_info(sd, "model_id = 0x%x\n", modelid);
 	
-	
-	/*rc = s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRH, 0xD000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDWR_ADDRH rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDWR_ADDRL, 0x108E);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDWR_ADDRL rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDBUF0_ADDR, 0x0000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDBUF0_ADDR 0x0000 rc=%d\n", rc);
-	}
-	
-	rc = s5k4cdgx_i2c_write(client, REG_CMDBUF0_ADDR, 0x0000);
-	if (rc < 0) {
-			v4l2_info(sd, "s5k4cdgx_i2c_write_w REG_CMDBUF0_ADDR 0x0000 rc=%d\n", rc);
-	}*/
 	
 	rc = s5k4cdgx_write(client, REG_GPIO_MODE_SEL, 0x0000);
 	if (rc < 0) {
@@ -2033,7 +1997,7 @@ static int s5k4cdgx_probe(struct i2c_client *client,
 	s5k4cdgx_presets_data_init(s5k4cdgx);
 
 	s5k4cdgx->ccd_rect.width = S5K4CDGX_WIN_WIDTH_MAX;
-	s5k4cdgx->ccd_rect.height	= S5K4CDGX_WIN_HEIGHT_MAX;
+	s5k4cdgx->ccd_rect.height = S5K4CDGX_WIN_HEIGHT_MAX;
 	s5k4cdgx->ccd_rect.left = 0;
 	s5k4cdgx->ccd_rect.top = 0;
 

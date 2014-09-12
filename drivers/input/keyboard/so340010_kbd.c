@@ -417,7 +417,7 @@ i2c_snag:
 #if (__SO340010_GENERIC_DEBUG__)
 	dev->last_i2c_error = ret;
 #endif
-	if(ret == ETIMEDOUT)
+	if(ret != 0)
 	{
 		so340010_reset(dev);
 	}

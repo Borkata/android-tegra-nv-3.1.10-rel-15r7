@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2010 Google, Inc.
- * Copyright (C) 2010-2011 NVIDIA Corporation
+ * Copyright (c) 2010-2012, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -47,6 +47,7 @@ struct tegra_utmi_config {
 	u8 xcvr_lsfslew;
 	u8 xcvr_lsrslew;
 	signed char xcvr_setup_offset;
+	u8 xcvr_use_lsb;
 	u8 xcvr_use_fuses;
 };
 
@@ -60,6 +61,7 @@ struct tegra_ulpi_config {
 	u8 stpdirnxt_trimmer;
 	u8 dir_trimmer;
 	const char *clk;
+	int phy_restore_gpio;
 };
 
 /**
@@ -119,6 +121,7 @@ struct tegra_usb_host_mode_data {
 struct tegra_usb_platform_data {
 	bool port_otg;
 	bool has_hostpc;
+	bool builtin_host_disabled;
 	enum tegra_usb_phy_interface phy_intf;
 	enum tegra_usb_operation_mode op_mode;
 

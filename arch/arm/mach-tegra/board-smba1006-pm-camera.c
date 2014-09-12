@@ -27,6 +27,7 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/err.h>
+#include <linux/wakelock.h>
 #include <generated/mach-types.h>
 #include <mach/gpio.h>
 #include "gpio-names.h"
@@ -49,6 +50,8 @@ int tegra_camera_enable(void *d);
 void tegra_camera_disable(void *d);
 int tegra_camera_clk_set_info(void *d, struct tegra_camera_clk_info *info);
 
+static struct wake_lock lock = {0};
+
 static struct tegra_camera_clk_info pclk_info = {
   .id = TEGRA_CAMERA_MODULE_VI,
   .clk_id = TEGRA_CAMERA_VI_CLK,
@@ -67,11 +70,17 @@ static int smba_s5k4cdgx_power_on(void)
 {
 	void *dev = tegra_camera_get_dev();
 
+	pr_info("%s:", __func__);
+
 	if(!dev) {
 	  pr_err("%s: could not get pm device!\n", __func__);
 	  return 0;
 	}
-
+	
+	/* Prevent suspend when camera on so that suspend doesn't freeze on wakeup when camer is on */
+	if (lock.name == NULL)
+		wake_lock_init(&lock, WAKE_LOCK_SUSPEND, "pm-camera");
+	wake_lock(&lock);
 	tegra_camera_enable(dev);
 	tegra_camera_clk_set_info(dev, &mclk_info);
 	tegra_camera_clk_set_info(dev, &pclk_info);
@@ -87,11 +96,13 @@ static int smba_s5k4cdgx_power_off(void)
 {
 	void *dev = tegra_camera_get_dev();
 
+	pr_info("%s:", __func__);
 	if(!dev) {
 	  pr_err("%s: could not get pm device!\n", __func__);
 	  return 0;
 	}
 
+	wake_unlock(&lock);
 	// camera MCLK (vi_sensor clk)
 	// camera PCLK (vi clk, pixel clk for data) is always an input
 	tegra_pinmux_set_tristate(TEGRA_PINGROUP_CSUS, TEGRA_TRI_TRISTATE);

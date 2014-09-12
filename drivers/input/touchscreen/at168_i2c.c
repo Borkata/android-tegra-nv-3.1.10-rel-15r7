@@ -94,17 +94,16 @@ static void at168_work(struct work_struct *work)
 		goto out;
 
 	for (i = 0; i < event.data.fingers; i++) {
-		input_report_abs(touch->input_dev, ABS_MT_POSITION_X,
-				 event.data.coord[i][0]);
-		input_report_abs(touch->input_dev, ABS_MT_POSITION_Y,
-				 event.data.coord[i][1]);
 		input_report_abs(touch->input_dev, ABS_MT_TRACKING_ID, i);
-		input_report_abs(touch->input_dev, ABS_MT_TOUCH_MAJOR, 10);
-		input_report_abs(touch->input_dev, ABS_MT_WIDTH_MAJOR, 20);
+                input_report_abs(touch->input_dev, ABS_MT_TOUCH_MAJOR, 10);
+                input_report_abs(touch->input_dev, ABS_MT_WIDTH_MAJOR, 20);
+		input_report_abs(touch->input_dev, ABS_MT_POSITION_X, event.data.coord[i][0]);
+		input_report_abs(touch->input_dev, ABS_MT_POSITION_Y, event.data.coord[i][1]);
 		input_mt_sync(touch->input_dev);
 	}
 	if(event.data.fingers == 0)
 	{
+		input_report_key(touch->input_dev, BTN_TOUCH, 0);
 		input_report_abs(touch->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(touch->input_dev, ABS_MT_WIDTH_MAJOR, 0);
 		input_mt_sync(touch->input_dev);
@@ -250,18 +249,18 @@ static int at168_probe(struct i2c_client *client,
 	set_bit(EV_KEY, touch->input_dev->evbit);
 	set_bit(EV_ABS, touch->input_dev->evbit);
 	set_bit(BTN_TOUCH, touch->input_dev->keybit);
-	set_bit(BTN_2, touch->input_dev->keybit);
+	//set_bit(BTN_2, touch->input_dev->keybit);
 
 	/* expose multi-touch capabilities */
-	set_bit(ABS_MT_POSITION_X, touch->input_dev->keybit);
+	/*set_bit(ABS_MT_POSITION_X, touch->input_dev->keybit);
 	set_bit(ABS_MT_POSITION_Y, touch->input_dev->keybit);
 	set_bit(ABS_X, touch->input_dev->keybit);
-	set_bit(ABS_Y, touch->input_dev->keybit);
+	set_bit(ABS_Y, touch->input_dev->keybit);*/
 
 	input_set_abs_params(touch->input_dev, ABS_X, 0, XMaxPosition, 0, 0);
 	input_set_abs_params(touch->input_dev, ABS_Y, 0, YMaxPosition, 0, 0);
-	input_set_abs_params(touch->input_dev, ABS_HAT0X, 0, XMaxPosition, 0, 0);
-	input_set_abs_params(touch->input_dev, ABS_HAT0Y, 0, YMaxPosition, 0, 0);
+	/*input_set_abs_params(touch->input_dev, ABS_HAT0X, 0, XMaxPosition, 0, 0);
+	input_set_abs_params(touch->input_dev, ABS_HAT0Y, 0, YMaxPosition, 0, 0);*/
 	/*input_set_abs_params(touch->input_dev, ABS_HAT1X, 0, XMaxPosition, 0, 0);
 	input_set_abs_params(touch->input_dev, ABS_HAT1Y, 0, YMaxPosition, 0, 0);*/
 
@@ -269,8 +268,12 @@ static int at168_probe(struct i2c_client *client,
 	input_set_abs_params(touch->input_dev, ABS_MT_POSITION_Y, 0, YMaxPosition, 0, 0); 
 	input_set_abs_params(touch->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(touch->input_dev, ABS_MT_WIDTH_MAJOR, 0, 200, 0, 0);
-	//input_set_abs_params(touch->input_dev, ABS_MT_TRACKING_ID, 0, 1, 1, 0);
+	input_set_abs_params(touch->input_dev, ABS_MT_TRACKING_ID, 0, 1, 1, 0);
 	
+
+        input_set_abs_params(touch->input_dev, ABS_X, 0, XMaxPosition, 0, 0);
+        input_set_abs_params(touch->input_dev, ABS_Y, 0, YMaxPosition, 0, 0);
+	input_set_abs_params(touch->input_dev, ABS_PRESSURE, 0, 1, 0, 0);
 
 	ret = input_register_device(touch->input_dev);
 	if (ret) {

@@ -113,6 +113,18 @@ static void __init uart_debug_init(void)
 			
 		break;
 
+	case 3:
+		/* UARTD is the debug port. */
+		pr_info("Selecting UARTD as the debug console\n");
+		smba_uart_devices[3] = &debug_uartd_device;
+		debug_uart_clk = clk_get_sys("serial8250.0", "uartd");
+		debug_uart_port_base = ((struct plat_serial8250_port *)(
+			debug_uartd_device.dev.platform_data))->mapbase;
+		debug_uart_port_clk_rate = ((struct plat_serial8250_port *)(
+			debug_uartd_device.dev.platform_data))->uartclk; 
+
+		break;
+
 	default:
 		pr_info("The debug console id %d is invalid, Assuming UARTA",
 			debug_port_id);

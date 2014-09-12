@@ -26,6 +26,9 @@
 
 #define SMBA1006_BL_PWM_ID		0		/* PWM0 controls backlight */
 
+// SMBA1006 set 48kHz Audio
+#define SMBA1006_48KHZ_AUDIO
+
 // Input
 /* GPS and Magnetic sensor share the same enabling IO line */
 #define SMBA1006_KEY_VOLUMEUP 		TEGRA_GPIO_PD4 	/* 0=pressed */

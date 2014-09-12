@@ -48,14 +48,14 @@
 #include <mach/system.h>
 
 #include "board.h"
-#include "board-smba1007.h"
+#include "board-smba1006.h"
 #include "gpio-names.h"
 #include "devices.h"
 
 /* Default music path: I2S1(DAC1)<->Dap1<->HifiCodec
    Bluetooth to codec: I2S2(DAC2)<->Dap4<->Bluetooth
 */
-/* For SMBA1007, 
+/* For SMBA1006, 
 	Codec is ALC5623
 	Codec I2C Address = 0x34(includes R/W bit), i2c #0
 	Codec MCLK = APxx DAP_MCLK1
@@ -142,8 +142,8 @@ static struct i2c_board_info __initdata smba_i2c_bus0_board_info[] = {
 
 static struct tegra_alc5623_platform_data smba_audio_pdata = {
         .gpio_spkr_en           = -2,
-        .gpio_hp_det            = SMBA1007_HP_DETECT,
-	.gpio_int_mic_en 	= SMBA1007_INT_MIC_EN,
+        .gpio_hp_det            = SMBA1006_HP_DETECT,
+	.gpio_int_mic_en 	= SMBA1006_INT_MIC_EN,
 	.hifi_codec_datafmt = SND_SOC_DAIFMT_I2S,	/* HiFi codec data format */
 #ifdef ALC5623_IS_MASTER
 	.hifi_codec_master  = true,					/* If Hifi codec is master */

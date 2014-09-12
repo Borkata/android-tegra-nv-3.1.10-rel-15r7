@@ -1,8 +1,8 @@
 /*
  * EHCI-compliant USB host controller driver for NVIDIA Tegra SoCs
  *
- * Copyright (C) 2010 Google, Inc.
- * Copyright (C) 2009 - 2011 NVIDIA Corporation
+ * Copyright (c) 2010 Google, Inc.
+ * Copyright (c) 2009-2012 NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -156,7 +156,6 @@ static irqreturn_t tegra_ehci_irq(struct usb_hcd *hcd)
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	irqreturn_t irq_status;
-	bool pmc_remote_wakeup = false;
 
 	spin_lock(&ehci->lock);
 	irq_status = tegra_usb_phy_irq(tegra->phy);
@@ -166,8 +165,9 @@ static irqreturn_t tegra_ehci_irq(struct usb_hcd *hcd)
 	}
 	if (tegra_usb_phy_remote_wakeup(tegra->phy)) {
 		ehci_info(ehci, "remote wakeup detected\n");
-		pmc_remote_wakeup = true;
 		usb_hcd_resume_root_hub(hcd);
+		spin_unlock(&ehci->lock);
+		return irq_status;
 	}
 	spin_unlock(&ehci->lock);
 
@@ -177,10 +177,6 @@ static irqreturn_t tegra_ehci_irq(struct usb_hcd *hcd)
 		ehci_readl(ehci, &ehci->regs->port_status[0]));
 
 	irq_status = ehci_irq(hcd);
-
-	if (pmc_remote_wakeup) {
-		ehci->controller_remote_wakeup = false;
-	}
 
 	if (ehci->controller_remote_wakeup) {
 		ehci->controller_remote_wakeup = false;
@@ -202,7 +198,6 @@ static int tegra_ehci_hub_control(
 {
 	struct tegra_ehci_hcd *tegra = dev_get_drvdata(hcd->self.controller);
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
-	unsigned long	flags;
 	int	retval = 0;
 	u32 __iomem	*status_reg;
 
@@ -216,6 +211,7 @@ static int tegra_ehci_hub_control(
 	switch (typeReq) {
 	case GetPortStatus:
 		if (tegra->port_resuming) {
+			u32 cmd;
 			int delay = ehci->reset_done[wIndex-1] - jiffies;
 			/* Sometimes it seems we get called too soon... In that case, wait.*/
 			if (delay > 0) {
@@ -230,9 +226,11 @@ static int tegra_ehci_hub_control(
 			tegra_usb_phy_post_resume(tegra->phy);
 			tegra->port_resuming = 0;
 			/* If run bit is not set by now enable it */
-			if (ehci->command & CMD_RUN) {
+			cmd = ehci_readl(ehci, &ehci->regs->command);
+			if (!(cmd & CMD_RUN)) {
+				cmd |= CMD_RUN;
 				ehci->command |= CMD_RUN;
-				ehci_writel(ehci, ehci->command, &ehci->regs->command);
+				ehci_writel(ehci, cmd, &ehci->regs->command);
 			}
 			/* Now we can safely re-enable irqs */
 			ehci_writel(ehci, INTR_MASK, &ehci->regs->intr_enable);
@@ -409,10 +407,12 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct usb_hcd *hcd;
 	struct tegra_ehci_hcd *tegra;
+	struct tegra_usb_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	int err = 0;
 	int irq;
 
-	tegra = kzalloc(sizeof(struct tegra_ehci_hcd), GFP_KERNEL);
+	tegra = devm_kzalloc(&pdev->dev, sizeof(struct tegra_ehci_hcd),
+		GFP_KERNEL);
 	if (!tegra) {
 		dev_err(&pdev->dev, "memory alloc failed\n");
 		return -ENOMEM;
@@ -424,8 +424,7 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 					dev_name(&pdev->dev));
 	if (!hcd) {
 		dev_err(&pdev->dev, "unable to create HCD\n");
-		err = -ENOMEM;
-		goto fail_hcd;
+		return -ENOMEM;
 	}
 
 	platform_set_drvdata(pdev, tegra);
@@ -446,7 +445,7 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 	}
 
 	irq = platform_get_irq(pdev, 0);
-	if (!irq) {
+	if (irq < 0) {
 		dev_err(&pdev->dev, "failed to get IRQ\n");
 		err = -ENODEV;
 		goto fail_irq;
@@ -473,19 +472,21 @@ static int tegra_ehci_probe(struct platform_device *pdev)
 		goto fail_phy;
 	}
 
-	err = usb_add_hcd(hcd, irq, IRQF_DISABLED | IRQF_SHARED);
+	err = usb_add_hcd(hcd, irq, IRQF_SHARED | IRQF_TRIGGER_HIGH);
 	if (err) {
 		dev_err(&pdev->dev, "Failed to add USB HCD, error=%d\n", err);
 		goto fail_phy;
 	}
 
-	err = enable_irq_wake(tegra->irq);
-	if (err < 0) {
-		dev_warn(&pdev->dev,
-				"Couldn't enable USB host mode wakeup, irq=%d, "
-				"error=%d\n", irq, err);
-		err = 0;
-		tegra->irq = 0;
+	if (pdata->u_data.host.remote_wakeup_supported) {
+		err = enable_irq_wake(tegra->irq);
+		if (err < 0) {
+			dev_warn(&pdev->dev,
+					"Couldn't enable USB host mode wakeup,"
+					" irq=%d error=%d\n", irq, err);
+			err = 0;
+			tegra->irq = 0;
+		}
 	}
 
 	tegra->ehci = hcd_to_ehci(hcd);
@@ -505,25 +506,21 @@ fail_irq:
 	iounmap(hcd->regs);
 fail_io:
 	usb_put_hcd(hcd);
-fail_hcd:
-	kfree(tegra);
 
 	return err;
 }
 
 
 #ifdef CONFIG_PM
-static int tegra_ehci_resume_noirq(struct device *dev)
+static int tegra_ehci_resume(struct platform_device *pdev)
 {
-	struct platform_device *pdev = to_platform_device(dev);
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 
 	return tegra_usb_phy_power_on(tegra->phy);
 }
 
-static int tegra_ehci_suspend_noirq(struct device *dev)
+static int tegra_ehci_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	struct platform_device *pdev = to_platform_device(dev);
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 
 	/* bus suspend could have failed because of remote wakeup resume */
@@ -532,16 +529,12 @@ static int tegra_ehci_suspend_noirq(struct device *dev)
 	else
 		return tegra_usb_phy_power_off(tegra->phy);
 }
-
-static struct dev_pm_ops tegra_ehci_dev_pm_ops = {
-	.suspend_noirq = tegra_ehci_suspend_noirq,
-	.resume_noirq = tegra_ehci_resume_noirq,
-};
 #endif
 
 static int tegra_ehci_remove(struct platform_device *pdev)
 {
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
+	struct tegra_usb_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct usb_hcd *hcd = ehci_to_hcd(tegra->ehci);
 
 	if (tegra == NULL || hcd == NULL)
@@ -554,14 +547,18 @@ static int tegra_ehci_remove(struct platform_device *pdev)
 	}
 #endif
 
-	if (tegra->irq)
+	if (tegra->irq && pdata->u_data.host.remote_wakeup_supported)
 		disable_irq_wake(tegra->irq);
+
+	/* Make sure phy is powered ON to access USB register */
+	if(!tegra_usb_phy_hw_accessible(tegra->phy))
+		tegra_usb_phy_power_on(tegra->phy);
+
 	usb_remove_hcd(hcd);
-	usb_put_hcd(hcd);
 	tegra_usb_phy_power_off(tegra->phy);
 	tegra_usb_phy_close(tegra->phy);
 	iounmap(hcd->regs);
-	kfree(tegra);
+	usb_put_hcd(hcd);
 
 	return 0;
 }
@@ -579,10 +576,11 @@ static struct platform_driver tegra_ehci_driver = {
 	.probe		= tegra_ehci_probe,
 	.remove	= tegra_ehci_remove,
 	.shutdown	= tegra_ehci_hcd_shutdown,
+#ifdef CONFIG_PM
+	.suspend = tegra_ehci_suspend,
+	.resume  = tegra_ehci_resume,
+#endif
 	.driver	= {
 		.name	= driver_name,
-#ifdef CONFIG_PM
-		.pm = &tegra_ehci_dev_pm_ops,
-#endif
 	}
 };

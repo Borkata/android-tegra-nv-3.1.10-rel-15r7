@@ -19,6 +19,7 @@
 
 
 #include <linux/debugfs.h>
+#include <linux/delay.h>
 #include <linux/fb.h>
 #include <linux/i2c.h>
 #include <linux/seq_file.h>
@@ -176,8 +177,11 @@ int tegra_edid_read_block(struct tegra_edid *edid, int block, u8 *data)
 
 	status = i2c_transfer(edid->client->adapter, m, msg_len);
 
-	if (status < 0)
+	if (status < 0) {
+		pr_err("edid: i2c_transfer error: %d", status);
+		msleep(1000);
 		return status;
+	}
 
 	if (status != msg_len)
 		return -EIO;
